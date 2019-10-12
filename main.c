@@ -18,6 +18,7 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "binarize.h"
 #include "rgbimage.h"
 
 
@@ -32,6 +33,11 @@ int main(int argc, char* argv[]) {
 
     struct rgb_image* img = load_rgb_image(argv[1]);
     if (img == NULL) {
+        return 1;
+    }
+
+    struct bit_matrix* bm = binarize(img);
+    if (bm == NULL) {
         return 1;
     }
 
