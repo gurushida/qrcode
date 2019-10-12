@@ -1,3 +1,6 @@
+#ifndef _BITMATRIX_H
+#define _BITMATRIX_H
+
 #include <stdint.h>
 
 struct bit_matrix {
@@ -33,3 +36,5 @@ u_int8_t get_bit(struct bit_matrix* bm, unsigned int x, unsigned int y);
  * or terminates the program if the coordinates are out of bounds.
  */
 void set_bit(struct bit_matrix* bm, u_int8_t value, unsigned int x, unsigned int y);
+
+#endif
