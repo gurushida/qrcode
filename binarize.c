@@ -119,8 +119,9 @@ static void threshold_block(u_int8_t* luminances,
     }
     for (unsigned int yy = y ; yy < maxY ; yy++) {
         for (unsigned int xx = x ; xx < maxX ; xx++) {
-            u_int8_t color = luminances[yy * bm->width + xx] > threshold;
-            set_bit(bm, color, xx, yy);
+            if (luminances[yy * bm->width + xx] <= threshold) {
+                set_color(bm, BLACK, xx, yy);
+            }
         }
     }
 }

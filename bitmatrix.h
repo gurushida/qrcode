@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+#define WHITE 0
+#define BLACK 1
+
+
 struct bit_matrix {
     unsigned int width;
     unsigned int height;
@@ -12,7 +16,7 @@ struct bit_matrix {
 
 /**
  * Allocates and returns a bit matrix of the given size where
- * all the bits are initialized to 0, i.e. black.
+ * all the bits are initialized to 0, i.e. white.
  * Returns NULL in case of memory allocation error.
  */
 struct bit_matrix* create_bit_matrix(unsigned int width, unsigned int height);
@@ -25,16 +29,16 @@ void free_bit_matrix(struct bit_matrix* bm);
 
 
 /**
- * Returns 0 (black) or 1 (white) depending on the value of the bit at the given
- * coordinates or terminates the program if the coordinates are out of bounds.
+ * Returns 1 if the pixel at the given coordinates is black; 0 otherwise.
+ * Terminates the program if the coordinates are out of bounds.
  */
-u_int8_t get_bit(struct bit_matrix* bm, unsigned int x, unsigned int y);
+u_int8_t is_black(struct bit_matrix* bm, unsigned int x, unsigned int y);
 
 
 /**
- * Sets the given value normalized to 0 (black) or 1 (white) at the given coordinates
+ * Sets the given value normalized to 1 (black) or 0 (white) at the given coordinates
  * or terminates the program if the coordinates are out of bounds.
  */
-void set_bit(struct bit_matrix* bm, u_int8_t value, unsigned int x, unsigned int y);
+void set_color(struct bit_matrix* bm, u_int8_t value, unsigned int x, unsigned int y);
 
 #endif

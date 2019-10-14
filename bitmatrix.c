@@ -25,7 +25,7 @@ void free_bit_matrix(struct bit_matrix* bm) {
 }
 
 
-u_int8_t get_bit(struct bit_matrix* bm, unsigned int x, unsigned int y) {
+u_int8_t is_black(struct bit_matrix* bm, unsigned int x, unsigned int y) {
     if (x >= bm->width || y >= bm->height) {
         fprintf(stderr, "Invalid access in get_bit\n");
         exit(1);
@@ -34,7 +34,7 @@ u_int8_t get_bit(struct bit_matrix* bm, unsigned int x, unsigned int y) {
 }
 
 
-void set_bit(struct bit_matrix* bm, u_int8_t value, unsigned int x, unsigned int y) {
+void set_color(struct bit_matrix* bm, u_int8_t value, unsigned int x, unsigned int y) {
     if (x >= bm->width || y >= bm->height) {
         fprintf(stderr, "Invalid access in set_bit\n");
         exit(1);
