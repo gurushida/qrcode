@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "binarize.h"
+#include "finderpattern.h"
 #include "rgbimage.h"
 
 
@@ -41,5 +42,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    struct finder_pattern_list* list = find_potential_centers(bm);
     return 0;
 }
