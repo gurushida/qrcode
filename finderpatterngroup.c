@@ -147,15 +147,15 @@ static void check_points(struct finder_pattern* p1, struct finder_pattern* p2, s
         return;
     }
 
-    // Now, it ABC is a valid group, the angle ABC must be about 90° so let's
-    // check it by verifying it with Pythagoras' theorem
+    // Now, for ABC to be a valid group, the angle ABC must be about 90° so let's
+    // check it with Pythagoras' theorem
     float pyth_AC = sqrtf(distance_AB * distance_AB + distance_BC * distance_BC);
     float delta_AC = fabs(distance_AC - pyth_AC) / fmin(distance_AC, pyth_AC);
     if (delta_AC > 0.1f) {
         return;
     }
 
-    // Ok ABC is an isosceles rectangle triangle, is it the right size ?
+    // Ok, ABC is an isosceles rectangle triangle, but is it the right size ?
     float estimated_module_count = (distance_AB + distance_BC) / (b->module_size * 2.0f);
     if (estimated_module_count < MIN_MODULES_PER_EDGE || estimated_module_count > MAX_MODULES_PER_EDGE) {
         return;
