@@ -51,4 +51,10 @@ struct finder_pattern_list* find_potential_centers(struct bit_matrix* bm);
  */
 void free_finder_pattern_list(struct finder_pattern_list* list);
 
+
+/**
+ * Returns the number of elements in the given list.
+ */
+unsigned int get_list_size(struct finder_pattern_list* list);
+
 #endif

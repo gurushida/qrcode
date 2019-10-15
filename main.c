@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include "binarize.h"
 #include "finderpattern.h"
+#include "finderpatterngroup.h"
 #include "rgbimage.h"
 
 
@@ -43,5 +44,18 @@ int main(int argc, char* argv[]) {
     }
 
     struct finder_pattern_list* list = find_potential_centers(bm);
+    struct finder_pattern_group_list* groups = find_groups(list);
+
+    struct finder_pattern_group_list* tmp = groups;
+    while (tmp != NULL) {
+        printf("B: %.2f %.2f  C: %.2f %.2f\n", tmp->top_left.x, tmp->top_left.y, tmp->top_right.x, tmp->top_right.y);
+        printf("A: %.2f %.2f\n\n", tmp->bottom_left.x, tmp->bottom_left.y);
+        tmp = tmp->next;
+    }
+
+    free_finder_pattern_list(list);
+    free_finder_pattern_group_list(groups);
+    free_bit_matrix(bm);
+    free_rgb_image(img);
     return 0;
 }

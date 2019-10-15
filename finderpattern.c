@@ -380,3 +380,13 @@ static int check_potential_center(struct bit_matrix* bm, unsigned int pixel_coun
     float estimated_module_size = total_pixels / 7.0f;
     return handle_potential_center(list, centerX, centerY, estimated_module_size);
 }
+
+
+unsigned int get_list_size(struct finder_pattern_list* list) {
+    unsigned int n = 0;
+    while (list != NULL) {
+        n++;
+        list = list->next;
+    }
+    return n;
+}
