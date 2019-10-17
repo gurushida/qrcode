@@ -37,13 +37,18 @@ struct finder_pattern_list {
 
 /**
  * Given a bit matrix, returns a list of potential positions for
- * the finder patterns by looking for black/white/black/white/black
- * modules with 1:1:3:1:1 ratios.
+ * the finder/alignment patterns by looking for black/white/black/white/black
+ * modules with 1:1:3:1:1 or 1:1:1:1:1 ratios.
  *
  * This function assumes that the edges of the QR code(s) are
  * reasonably parallel to the edges of the image.
+ *
+ * @param bm The binary matrix to explore
+ * @param search_finder_pattern If non zero, the function looks for finder patterns,
+ *                              i.e. patterns with 1:1:3:1:1 ratios; if zero, it looks
+ *                              for alignment patterns that have 1:1:1:1:1 ratios
  */
-struct finder_pattern_list* find_potential_centers(struct bit_matrix* bm);
+struct finder_pattern_list* find_potential_centers(struct bit_matrix* bm, int search_finder_pattern);
 
 
 /**

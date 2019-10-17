@@ -3,8 +3,12 @@
 
 #include "finderpatterngroup.h"
 
-#define MIN_MODULES_PER_EDGE 9
-#define MAX_MODULES_PER_EDGE 180
+// Since the minimum and maximum number of modules of the side
+// of a QR code are 21 and 197 and since the center of a finder pattern
+// is 3 modules away from the edge of the QR code, let's allow a margin
+// of 8 modules
+#define MIN_MODULES 13
+#define MAX_MODULES 189
 
 #define MAX_MODULE_SIZE_DIFF 0.5f
 
@@ -157,7 +161,7 @@ static void check_points(struct finder_pattern* p1, struct finder_pattern* p2, s
 
     // Ok, ABC is an isosceles rectangle triangle, but is it the right size ?
     float estimated_module_count = (distance_AB + distance_BC) / (b->module_size * 2.0f);
-    if (estimated_module_count < MIN_MODULES_PER_EDGE || estimated_module_count > MAX_MODULES_PER_EDGE) {
+    if (estimated_module_count < MIN_MODULES || estimated_module_count > MAX_MODULES) {
         return;
     }
 

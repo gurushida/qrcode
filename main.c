@@ -21,6 +21,7 @@
 #include "binarize.h"
 #include "finderpattern.h"
 #include "finderpatterngroup.h"
+#include "qrcodefinder.h"
 #include "rgbimage.h"
 
 
@@ -43,13 +44,31 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    struct finder_pattern_list* list = find_potential_centers(bm);
+    struct finder_pattern_list* list = find_potential_centers(bm, 1);
     struct finder_pattern_group_list* groups = find_groups(list);
 
     struct finder_pattern_group_list* tmp = groups;
     while (tmp != NULL) {
+        printf("---------------------------------------------\n");
         printf("B: %.2f %.2f  C: %.2f %.2f\n", tmp->top_left.x, tmp->top_left.y, tmp->top_right.x, tmp->top_right.y);
-        printf("A: %.2f %.2f\n\n", tmp->bottom_left.x, tmp->bottom_left.y);
+        printf("A: %.2f %.2f\n", tmp->bottom_left.x, tmp->bottom_left.y);
+
+        struct qr_code* code = get_qr_code(tmp->bottom_left, tmp->top_left, tmp->top_right, bm);
+        if (code == NULL) {
+            printf("Could not find code :(\n");
+        } else {
+            printf("Found code:\n");
+            for (unsigned int y = 0 ; y < code->modules->height ; y++) {
+                for (unsigned int x = 0 ; x < code->modules->width ; x++) {
+                    printf("%c", is_black(code->modules, x, y) ? '*' : ' ');
+                }
+                printf("\n");
+            }
+            printf("B: %d,%d     C: %d,%d\n", code->top_left_x, code->top_left_y, code->top_right_x, code->top_right_y);
+            printf("A: %d,%d     D: %d,%d\n", code->bottom_left_x, code->bottom_left_y, code->bottom_right_x, code->bottom_right_y);
+            free_qr_code(code);
+        }
+        printf("\n");
         tmp = tmp->next;
     }
 

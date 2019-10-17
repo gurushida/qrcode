@@ -6,11 +6,11 @@
 #include "finderpattern.h"
 
 
-static int check_potential_center(struct bit_matrix* bm, unsigned int pixel_counts[],
+static int check_potential_center(struct bit_matrix* bm,  int search_finder_pattern, unsigned int pixel_counts[],
                             unsigned int x, unsigned int y, struct finder_pattern_list* *list);
 
 
-struct finder_pattern_list* find_potential_centers(struct bit_matrix* bm) {
+struct finder_pattern_list* find_potential_centers(struct bit_matrix* bm, int search_finder_pattern) {
     unsigned int maxY = bm->height;
     unsigned int maxX = bm->width;
 
@@ -38,7 +38,7 @@ struct finder_pattern_list* find_potential_centers(struct bit_matrix* bm) {
                     if (current_state == 4) {
                         // We have now found a b/w/b/w/b pattern.
                         // We need to check if it looks like a finder pattern
-                        if (check_potential_center(bm, pixel_counts, x, y, &list)) {
+                        if (check_potential_center(bm, search_finder_pattern, pixel_counts, x, y, &list)) {
                             // Let's reset the counts before continuing to look for more
                             current_state = 0;
                             memset(pixel_counts, 0, 5 * sizeof(int));
@@ -61,7 +61,7 @@ struct finder_pattern_list* find_potential_centers(struct bit_matrix* bm) {
             }
         }
         // A valid match may be ended by the right edge of the image rather than a white pixel
-        check_potential_center(bm, pixel_counts, maxX, y, &list);
+        check_potential_center(bm, search_finder_pattern, pixel_counts, maxX, y, &list);
     }
 
     return list;
@@ -94,9 +94,13 @@ void free_finder_pattern_list(struct finder_pattern_list* list) {
 
 /**
  * Returns 1 if the given black and white ratios are close enough
- * to 1:1:3:1:1; 0 otherwise.
+ * to 1:1:3:1:1 or 1:1:1:1:1; 0 otherwise.
+ *
+ * @param pixel_counts An array of 5 pixel counts
+ * @param search_finder_pattern If 0, looks for 1:1:1:1:1 ratios; otherwise
+ *                              looks for 1:1:3:1:1
  */
-static int proper_ratios(unsigned int pixel_counts[]) {
+static int proper_ratios(unsigned int pixel_counts[], int search_finder_pattern) {
     unsigned int total_pixels = 0;
     for (int i = 0 ; i < 5 ; i++) {
         if (pixel_counts[i] == 0) {
@@ -105,17 +109,19 @@ static int proper_ratios(unsigned int pixel_counts[]) {
         total_pixels += pixel_counts[i];
     }
 
-    if (total_pixels < 7) {
+    unsigned int middle_factor = search_finder_pattern ? 3 : 1;
+
+    if (total_pixels < (4 + middle_factor)) {
         return 0;
     }
 
-    float module_size = total_pixels / 7.0f;
+    float module_size = total_pixels / (4.0f + middle_factor);
     // We allow less than 50% difference between expected and actual values
     float max_variance = module_size / 2.0f;
 
     return fabs(module_size - pixel_counts[0]) < max_variance
         && fabs(module_size - pixel_counts[1]) < max_variance
-        && fabs(3.0f * module_size - pixel_counts[2]) < (3.0f * max_variance)
+        && fabs(middle_factor * module_size - pixel_counts[2]) < (middle_factor * max_variance)
         && fabs(module_size - pixel_counts[3]) < max_variance
         && fabs(module_size - pixel_counts[4]) < max_variance;
 }
@@ -135,6 +141,7 @@ static float get_center(unsigned int pixel_counts[], int end) {
  * centerX position. Returns 1 if the match is confirmed; 0 otherwise.
  *
  * @param bm The binary image
+ * @param search_finder_pattern Whether to look for a finder or an alignment pattern
  * @param centerX The x position we are trying to confirm
  * @param row The row where the given x position was found as a candidate
  * @param max_pixels_per_module A limit to be used as a fail fast when looking for the
@@ -142,10 +149,10 @@ static float get_center(unsigned int pixel_counts[], int end) {
  * @param total_pixels The total number of pixels that made the horizontal match
  * @param centerY Where to store the position of the vertical center in case of success
  */
-static int check_vertically(struct bit_matrix* bm, int centerX, int row, unsigned max_pixels_per_module,
+static int check_vertically(struct bit_matrix* bm, int search_finder_pattern, int centerX, int row,
+                    unsigned max_pixels_per_module,
                     unsigned int total_pixels, float *centerY) {
     unsigned int pixel_counts[5] = { 0, 0, 0, 0, 0 };
-
     unsigned int y = row;
     while (y > 0 && is_black(bm, centerX, y)) {
         pixel_counts[2]++;
@@ -168,6 +175,9 @@ static int check_vertically(struct bit_matrix* bm, int centerX, int row, unsigne
     while (y >= 0 && is_black(bm, centerX, y)) {
         if (++pixel_counts[0] > max_pixels_per_module) {
             return 0;
+        }
+        if (y == 0) {
+            break;
         }
         y--;
     }
@@ -199,7 +209,7 @@ static int check_vertically(struct bit_matrix* bm, int centerX, int row, unsigne
     }
 
     // We now have our vertical pixel counts. Let's check if the ratios are good
-    if (!proper_ratios(pixel_counts)) {
+    if (!proper_ratios(pixel_counts, search_finder_pattern)) {
         return 0;
     }
 
@@ -220,6 +230,7 @@ static int check_vertically(struct bit_matrix* bm, int centerX, int row, unsigne
  * centerY position. Returns 1 if the match is confirmed; 0 otherwise.
  *
  * @param bm The binary image
+ * @param search_finder_pattern Whether to look for a finder or an alignment pattern
  * @param centerY The y position we are trying to confirm
  * @param column The colmun where the given y position was found as a candidate
  * @param max_pixels_per_module A limit to be used as a fail fast when looking for the
@@ -227,7 +238,8 @@ static int check_vertically(struct bit_matrix* bm, int centerX, int row, unsigne
  * @param total_pixels The total number of pixels that made the vertical match
  * @param centerX Where to store the position of the horizontal center in case of success
  */
-static int check_horizontally(struct bit_matrix* bm, int centerY, int column, unsigned max_pixels_per_module,
+static int check_horizontally(struct bit_matrix* bm, int search_finder_pattern, int centerY, int column,
+                    unsigned max_pixels_per_module,
                     unsigned int total_pixels, float *centerX) {
     unsigned int pixel_counts[5] = { 0, 0, 0, 0, 0 };
 
@@ -253,6 +265,9 @@ static int check_horizontally(struct bit_matrix* bm, int centerY, int column, un
     while (x >= 0 && is_black(bm, x, centerY)) {
         if (++pixel_counts[0] > max_pixels_per_module) {
             return 0;
+        }
+        if (x == 0) {
+            break;
         }
         x--;
     }
@@ -284,7 +299,7 @@ static int check_horizontally(struct bit_matrix* bm, int centerY, int column, un
     }
 
     // We now have our horizontal pixel counts. Let's check if the ratios are good
-    if (!proper_ratios(pixel_counts)) {
+    if (!proper_ratios(pixel_counts, search_finder_pattern)) {
         return 0;
     }
 
@@ -349,35 +364,37 @@ static int handle_potential_center(struct finder_pattern_list* *list, float cent
 
 /**
  * If the given module counts found at the given x,y position corresponds
- * indeed to a potential finder pattern center, returns 1 and add this match
+ * indeed to a potential pattern center, returns 1 and add this match
  * to the given list. Returns 0 otherwise.
  *
  * @param bm The binary image
+ * @param search_finder_pattern Whether to look for a finder or an alignment pattern
  * @param module_counts The black:white:black:white:black pixel counts that we wan
  *                      to check
  * @param xEnd The x coordinate of the first white pixel after the candidate sequence
  * @param y The row where the sequence was found
  * @param list The list where to add matches
  */
-static int check_potential_center(struct bit_matrix* bm, unsigned int pixel_counts[],
+static int check_potential_center(struct bit_matrix* bm, int search_finder_pattern, unsigned int pixel_counts[],
                             unsigned int xEnd, unsigned int y, struct finder_pattern_list* *list) {
 
-    if (!proper_ratios(pixel_counts)) {
+    if (!proper_ratios(pixel_counts, search_finder_pattern)) {
         return 0;
     }
 
+    unsigned int max_pixels_per_module = pixel_counts[2] * (search_finder_pattern ? 1 : 2);
     int total_pixels = pixel_counts[0] + pixel_counts[1] + pixel_counts[2] +
                         pixel_counts[3] + pixel_counts[4];
     float centerX = get_center(pixel_counts, xEnd);
     float centerY;
-    if (!check_vertically(bm, (unsigned int)centerX, y, pixel_counts[2], total_pixels, &centerY)) {
+    if (!check_vertically(bm, search_finder_pattern, (unsigned int)centerX, y, max_pixels_per_module, total_pixels, &centerY)) {
         return 0;
     }
-    if (!check_horizontally(bm, (unsigned int)centerY, (int)centerX, pixel_counts[2], total_pixels, &centerX)) {
+    if (!check_horizontally(bm, search_finder_pattern, (unsigned int)centerY, (int)centerX, max_pixels_per_module, total_pixels, &centerX)) {
         return 0;
     }
 
-    float estimated_module_size = total_pixels / 7.0f;
+    float estimated_module_size = total_pixels / (search_finder_pattern ? 7.0f : 5.0f);
     return handle_potential_center(list, centerX, centerY, estimated_module_size);
 }
 
