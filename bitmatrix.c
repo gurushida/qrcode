@@ -27,7 +27,7 @@ void free_bit_matrix(struct bit_matrix* bm) {
 
 u_int8_t is_black(struct bit_matrix* bm, unsigned int x, unsigned int y) {
     if (x >= bm->width || y >= bm->height) {
-        fprintf(stderr, "Invalid access in get_bit\n");
+        fprintf(stderr, "Invalid access in is_black %d,%d while dimensions = %dx%d\n", x, y, bm->width, bm->height);
         exit(1);
     }
     return bm->matrix[y * bm->width + x] & 1;
@@ -36,7 +36,7 @@ u_int8_t is_black(struct bit_matrix* bm, unsigned int x, unsigned int y) {
 
 void set_color(struct bit_matrix* bm, u_int8_t value, unsigned int x, unsigned int y) {
     if (x >= bm->width || y >= bm->height) {
-        fprintf(stderr, "Invalid access in set_bit\n");
+        fprintf(stderr, "Invalid access in set_color %d,%d  while dimensions = %dx%d\n", x, y, bm->width, bm->height);
         exit(1);
     }
     bm->matrix[y * bm->width + x] = value & 1;
