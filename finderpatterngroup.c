@@ -4,11 +4,11 @@
 #include "finderpatterngroup.h"
 
 // Since the minimum and maximum number of modules of the side
-// of a QR code are 21 and 197 and since the center of a finder pattern
+// of a QR code are 21 and 177 and since the center of a finder pattern
 // is 3 modules away from the edge of the QR code, let's allow a margin
 // of 8 modules
 #define MIN_MODULES 13
-#define MAX_MODULES 189
+#define MAX_MODULES 185
 
 #define MAX_MODULE_SIZE_DIFF 0.5f
 

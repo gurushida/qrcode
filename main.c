@@ -21,6 +21,7 @@
 #include "binarize.h"
 #include "finderpattern.h"
 #include "finderpatterngroup.h"
+#include "formatinformation.h"
 #include "qrcodefinder.h"
 #include "rgbimage.h"
 
@@ -66,6 +67,13 @@ int main(int argc, char* argv[]) {
             }
             printf("B: %d,%d     C: %d,%d\n", code->top_left_x, code->top_left_y, code->top_right_x, code->top_right_y);
             printf("A: %d,%d     D: %d,%d\n", code->bottom_left_x, code->bottom_left_y, code->bottom_right_x, code->bottom_right_y);
+
+            ErrorCorrectionLevel ec;
+            uint8_t mask_pattern;
+            if (1 == get_formation_information(code->modules, &ec, &mask_pattern)) {
+                printf("Error correction level = %d, mask pattern = %d\n", ec, mask_pattern);
+            }
+
             free_qr_code(code);
         }
         printf("\n");
