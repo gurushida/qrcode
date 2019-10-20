@@ -24,6 +24,7 @@
 #include "formatinformation.h"
 #include "qrcodefinder.h"
 #include "rgbimage.h"
+#include "versioninformation.h"
 
 
 int main(int argc, char* argv[]) {
@@ -72,6 +73,16 @@ int main(int argc, char* argv[]) {
             uint8_t mask_pattern;
             if (1 == get_formation_information(code->modules, &ec, &mask_pattern)) {
                 printf("Error correction level = %d, mask pattern = %d\n", ec, mask_pattern);
+
+                uint8_t version;
+                int ret = get_version_information(code->modules, &version);
+                if (1 == ret) {
+                    printf("version %d confirmed\n", version);
+                } else if (ret == -1) {
+                    printf("Could not decode version information\n");
+                } else if (ret == -2) {
+                    printf("Expcted version %d but got %d\n", (bm->width - 17) / 4, version);
+                }
             }
 
             free_qr_code(code);

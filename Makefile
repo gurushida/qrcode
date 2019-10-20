@@ -1,8 +1,9 @@
 qrcode: main.c bitmatrix.c bitmatrix.h rgbimage.c rgbimage.h binarize.c binarize.h\
         finderpattern.c finderpattern.h finderpatterngroup.c finderpatterngroup.h\
-		qrcodefinder.c qrcodefinder.h formatinformation.c formatinformation.h
+		qrcodefinder.c qrcodefinder.h formatinformation.c formatinformation.h\
+		versioninformation.c versioninformation.h
 	$(CC) -lpng main.c bitmatrix.c rgbimage.c binarize.c finderpattern.c finderpatterngroup.c \
-	qrcodefinder.c  formatinformation.c -o qrcode -Wall -Wextra -pedantic -std=c99
+	qrcodefinder.c formatinformation.c versioninformation.c -o qrcode -Wall -Wextra -pedantic -std=c99
 
 install: qrcode
 	cp qrcode /usr/local/bin/
