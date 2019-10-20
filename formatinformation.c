@@ -2,7 +2,9 @@
 
 // The table C.1 in the In ISO/IEC 18004:2006 Annex C enumerates the
 // valid 15-bit sequences that correspond to the possible 5-bit values
-// encoding the format information, after masking with 101010000010010.
+// encoding the format information, after XOR-masking with 101010000010010.
+// The reason for masking with this value is to make it impossible to
+// have only zeroes in the 15-bit string.
 //
 // This array lists these values so that code[x] is the 15-bit masked
 // value encoding the 5-bit value x
