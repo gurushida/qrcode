@@ -95,12 +95,12 @@ struct bit_matrix* get_codeword_mask(unsigned int size) {
     }
 
     // Horizontal timing pattern
-    for (unsigned int x = 8 ; x < size - 9 ; x++) {
+    for (unsigned int x = 8 ; x < size - 8 ; x++) {
         set_color(bm, BLACK, x, 6);
     }
 
     // Vertical timing pattern
-    for (unsigned int y = 8 ; y < size - 9 ; y++) {
+    for (unsigned int y = 8 ; y < size - 8 ; y++) {
         set_color(bm, BLACK, 6, y);
     }
 
