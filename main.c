@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "binarize.h"
+#include "blocks.h"
 #include "codewords.h"
 #include "codewordmask.h"
 #include "finderpattern.h"
@@ -87,7 +88,13 @@ int main(int argc, char* argv[]) {
                     printf("%d codewords\n", n_codewords);
                     free_bit_matrix(codeword_mask);
 
+                    struct blocks* blocks = get_blocks(codewords, version, ec);
                     free(codewords);
+
+                    if (blocks != NULL) {
+
+                        free_blocks(blocks);
+                    }
 
                 } else if (ret == -1) {
                     printf("Could not decode version information\n");
