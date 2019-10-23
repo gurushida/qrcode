@@ -104,21 +104,25 @@ struct bit_matrix* get_codeword_mask(unsigned int size) {
         set_color(bm, BLACK, 6, y);
     }
 
-    // Version information modules above the bottom left finder pattern
-    for (unsigned int y = size - 11 ; y < size - 8 ; y++) {
-        for (unsigned int x = 0 ; x < 6 ; x++) {
-            set_color(bm, BLACK, x, y);
-        }
-    }
-
-    // Version information modules on the left of the top right finder pattern
-    for (unsigned int y = 0 ; y < 6 ; y++) {
-        for (unsigned int x = size - 11 ; x < size - 8 ; x++) {
-            set_color(bm, BLACK, x, y);
-        }
-    }
-
     u_int8_t version = (size - 17) / 4;
+
+    // Versions >= 7 have version information
+    if (version >= 7) {
+        // Version information modules above the bottom left finder pattern
+        for (unsigned int y = size - 11 ; y < size - 8 ; y++) {
+            for (unsigned int x = 0 ; x < 6 ; x++) {
+                set_color(bm, BLACK, x, y);
+            }
+        }
+
+        // Version information modules on the left of the top right finder pattern
+        for (unsigned int y = 0 ; y < 6 ; y++) {
+            for (unsigned int x = size - 11 ; x < size - 8 ; x++) {
+                set_color(bm, BLACK, x, y);
+            }
+        }
+    }
+
     u_int8_t* pos = alignment_patterns[version - 1];
 
     for (unsigned int i = 0 ; pos[i] != 0 ; i++) {
