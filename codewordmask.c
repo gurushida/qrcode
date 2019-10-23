@@ -133,17 +133,17 @@ struct bit_matrix* get_codeword_mask(unsigned int size) {
                 // Inside the top left finder pattern
                 continue;
             }
-            if (x == 6 && y == size - 7) {
+            if (x == 6 && y == (size - 7)) {
                 // Inside the bottom left finder pattern
                 continue;
             }
-            if (x == size - 7 && y == 6) {
+            if (x == (size - 7) && y == 6) {
                 // Inside the top right finder pattern
                 continue;
             }
 
-            for (unsigned int ap_y = y - 1 ; ap_y <= y + 1 ; ap_y++) {
-                for (unsigned int ap_x = x - 1 ; ap_x <= x + 1 ; ap_x++) {
+            for (unsigned int ap_y = y - 2 ; ap_y <= y + 2 ; ap_y++) {
+                for (unsigned int ap_x = x - 2 ; ap_x <= x + 2 ; ap_x++) {
                     set_color(bm, BLACK, ap_x, ap_y);
                 }
             }
