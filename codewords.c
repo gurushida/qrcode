@@ -33,6 +33,10 @@ static void move_to_next_data_module(unsigned int *x, unsigned int *y, struct bi
             } else {
                 // We have reached the top of the matrix, we need to
                 // continue downwards one column to the left
+                if ((*x) == 0) {
+                    // If we get outside the matrix, we are done
+                    return;
+                }
                 (*upwards) = 0;
                 (*x)--;
                 if ((*x) == 6) {
@@ -53,6 +57,10 @@ static void move_to_next_data_module(unsigned int *x, unsigned int *y, struct bi
             } else {
                 // We have reached to bottom of the matrix, let's continue
                 // upwards one column to the left
+                if ((*x) == 0) {
+                    // If we get outside the matrix, we are done
+                    return;
+                }
                 (*upwards) = 1;
                 (*x)--;
                 if ((*x) == 6) {
