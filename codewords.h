@@ -6,6 +6,44 @@
 
 
 /**
+ * In order to convert modules into 8-bit words, the matrix is divided
+ * into 2-module wide columns (we ignore the module column that contains
+ * the vertical timing pattern as it does not contain any data module).
+ * Starting from the bottom right corner, we scan the modules by going
+ * upwards following this pattern:
+ *
+ *   01
+ *   23
+ *   45
+ *   67
+ *
+ * where 7 is the most signicant bit of the current codeword. When we
+ * reach the top of the column, we move one colum to the left and scan
+ * downwards with the pattern:
+ *
+ *   67
+ *   45
+ *   23
+ *   01
+ *
+ * As the exploration goes, the scanning will encounter non-data modules
+ * that should be ignored. In such a case, we keep following the snake
+ * scanning pattern and only take into account the data modules. For
+ * instance, if we are scanning downwards and suddenly encounter the
+ * corner of an alignment pattern, we will get something like this:
+ *
+ *   67
+ *   45
+ *   3*****
+ *   2*****
+ *   1*****
+ *   0*****
+ *   7*****
+ *   56
+ *   34
+ *   12
+ *    0
+ *
  * Given a module matrix, codeword mask matrix and the mask
  * pattern to apply to data modules, this function returns
  * an array containing all the 8-bit codewords contained in
