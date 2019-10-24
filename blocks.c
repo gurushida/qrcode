@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include "blocks.h"
 
 
@@ -10,7 +11,7 @@
  * of data codewords among them (so that y - z gives the number of
  * error codewords).
  */
-static int block_descriptions[40][4][7]= {
+static unsigned int block_descriptions[40][4][7]= {
     {           /* Version 1 */
         /* L */ { 1, 26, 19, 0 },
         /* M */ { 1, 26, 16, 0 },
@@ -255,8 +256,129 @@ static int block_descriptions[40][4][7]= {
 
 
 struct blocks* get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel ec_level) {
-    // TODO
-    return NULL;
+    if (version < 1 || version > 40 || ec_level < 0 || ec_level > 3) {
+        return NULL;
+    }
+
+    struct blocks* blocks = (struct blocks*)malloc(sizeof(struct blocks));
+    if (blocks == NULL) {
+        return NULL;
+    }
+
+    blocks->n_blocks = 0;
+    unsigned int* description = block_descriptions[version - 1][ec_level];
+
+    unsigned total_data_codewords = 0;
+    unsigned total_error_codewords = 0;
+
+    int i = 0;
+    while (description[i] != 0) {
+        unsigned int n_blocks = description[i];
+        unsigned int n_data_codewords = description[i + 2];
+        unsigned int n_error_codewords = description[i + 1] - n_data_codewords;
+        blocks->n_blocks += n_blocks;
+        total_data_codewords += n_blocks * n_data_codewords;
+        total_error_codewords += n_blocks * n_error_codewords;
+        i += 3;
+    }
+
+    // This array will be used when populating the codeword arrays
+    // to remember how full each array is at any time
+    unsigned int* counters = (unsigned int*)calloc(blocks->n_blocks, sizeof(unsigned int));
+    if (counters == NULL) {
+        free(blocks);
+        return NULL;
+    }
+
+    // Allocating with calloc guarantees that all the pointers in the blocks
+    // will be NULL, which will make it easier to cleanup if any allocation fails
+    // as invoking free() on a NULL pointer is a no-op
+    blocks->block = (struct block*)calloc(blocks->n_blocks, sizeof(struct block));
+    if (blocks->block == NULL) {
+        free(counters);
+        free(blocks);
+        return NULL;
+    }
+
+    // Let's allocate all the codeword arrays
+    i = 0;
+    int current_block = 0;
+    int fail = 0;
+    while (!fail && description[i] != 0) {
+        unsigned int n = description[i];
+        for (unsigned int j = 0 ; j < n ; j++) {
+            unsigned int n_data = description[i + 2];
+            unsigned int n_error = description[i + 1] - n_data;
+            blocks->block[current_block].n_data_codewords = n_data;
+            blocks->block[current_block].n_error_correction_codewords = n_error;
+            blocks->block[current_block].data_codewords = (u_int8_t*)malloc(n_data * sizeof(u_int8_t));
+            if (blocks->block[current_block].data_codewords == NULL) {
+                fail = 1;
+                break;
+            }
+            blocks->block[current_block].error_correction_codewords = (u_int8_t*)malloc(n_error * sizeof(u_int8_t));
+            if (blocks->block[current_block].error_correction_codewords == NULL) {
+                fail = 1;
+                break;
+            }
+            current_block++;
+        }
+        i += 3;
+    }
+
+    // If any memory allocation failed, let's free everything and return
+    if (fail) {
+        for (unsigned int i = 0 ; i < blocks->n_blocks ; i++) {
+            free(blocks->block[i].data_codewords);
+            free(blocks->block[i].error_correction_codewords);
+        }
+        free(blocks->block);
+        free(blocks);
+        free(counters);
+        return NULL;
+    }
+
+    // We now have allocated all the space to store the codewords.
+    // It is time to populate the codeword arrays
+
+    unsigned int pos = 0;
+    int current_block_index = 0;
+    while (pos < total_data_codewords) {
+        // Let's read one data codeword from the array
+        u_int8_t codeword = codewords[pos++];
+
+        // Now let's find where to put it by looking for the next data block that is not already full
+        while (counters[current_block_index] == blocks->block[current_block_index].n_data_codewords) {
+            current_block_index = (current_block_index + 1) % blocks->n_blocks;
+        }
+
+        // Let's add the data codeword
+        blocks->block[current_block_index].data_codewords[counters[current_block_index]] = codeword;
+        counters[current_block_index]++;
+        current_block_index = (current_block_index + 1) % blocks->n_blocks;
+    }
+
+    // Let's do the same for the error codewords, after resetting the counter array
+    memset(counters, 0, blocks->n_blocks * sizeof(unsigned int));
+
+    current_block_index = 0;
+    unsigned total_codewords = total_data_codewords + total_error_codewords;
+    while (pos < total_codewords) {
+        // Let's read one error codeword from the array
+        u_int8_t codeword = codewords[pos++];
+
+        // Now let's find where to put it by looking for the next data block that is not already full
+        while (counters[current_block_index] == blocks->block[current_block_index].n_error_correction_codewords) {
+            current_block_index = (current_block_index + 1) % blocks->n_blocks;
+        }
+
+        // Let's add the error correction codeword
+        blocks->block[current_block_index].error_correction_codewords[counters[current_block_index]] = codeword;
+        counters[current_block_index]++;
+        current_block_index = (current_block_index + 1) % blocks->n_blocks;
+    }
+
+    return blocks;
 }
 
 
