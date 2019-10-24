@@ -11,10 +11,10 @@
  * in the QR code.
  */
 typedef enum {
-    LOW = 3,         // 7% of codewords can be restored
-    MEDIUM = 2,      // 15%
-    QUARTILE = 1,    // 25%
-    HIGH = 0         // 30%
+    LOW = 0,         // 7% of codewords can be restored
+    MEDIUM = 1,      // 15%
+    QUARTILE = 2,    // 25%
+    HIGH = 3         // 30%
 } ErrorCorrectionLevel;
 
 
