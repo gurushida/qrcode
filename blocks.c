@@ -339,13 +339,8 @@ struct blocks* get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel
             blocks->block[current_block].error_correction_capacity = description[i + 3];
             blocks->block[current_block].n_data_codewords = n_data;
             blocks->block[current_block].n_error_correction_codewords = n_error;
-            blocks->block[current_block].data_codewords = (u_int8_t*)malloc(n_data * sizeof(u_int8_t));
-            if (blocks->block[current_block].data_codewords == NULL) {
-                fail = 1;
-                break;
-            }
-            blocks->block[current_block].error_correction_codewords = (u_int8_t*)malloc(n_error * sizeof(u_int8_t));
-            if (blocks->block[current_block].error_correction_codewords == NULL) {
+            blocks->block[current_block].codewords = (u_int8_t*)malloc((n_data + n_error) * sizeof(u_int8_t));
+            if (blocks->block[current_block].codewords == NULL) {
                 fail = 1;
                 break;
             }
@@ -357,8 +352,7 @@ struct blocks* get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel
     // If any memory allocation failed, let's free everything and return
     if (fail) {
         for (unsigned int i = 0 ; i < blocks->n_blocks ; i++) {
-            free(blocks->block[i].data_codewords);
-            free(blocks->block[i].error_correction_codewords);
+            free(blocks->block[i].codewords);
         }
         free(blocks->block);
         free(blocks);
@@ -381,7 +375,7 @@ struct blocks* get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel
         }
 
         // Let's add the data codeword
-        blocks->block[current_block_index].data_codewords[counters[current_block_index]] = codeword;
+        blocks->block[current_block_index].codewords[counters[current_block_index]] = codeword;
         counters[current_block_index]++;
         current_block_index = (current_block_index + 1) % blocks->n_blocks;
     }
@@ -401,7 +395,7 @@ struct blocks* get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel
         }
 
         // Let's add the error correction codeword
-        blocks->block[current_block_index].error_correction_codewords[counters[current_block_index]] = codeword;
+        blocks->block[current_block_index].codewords[blocks->block[current_block_index].n_data_codewords + counters[current_block_index]] = codeword;
         counters[current_block_index]++;
         current_block_index = (current_block_index + 1) % blocks->n_blocks;
     }
@@ -412,8 +406,7 @@ struct blocks* get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel
 
 void free_blocks(struct blocks* blocks) {
     for (unsigned int i = 0 ; i < blocks->n_blocks ; i++) {
-        free(blocks->block[i].data_codewords);
-        free(blocks->block[i].error_correction_codewords);
+        free(blocks->block[i].codewords);
     }
     free(blocks->block);
     free(blocks);

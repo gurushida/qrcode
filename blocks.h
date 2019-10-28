@@ -12,15 +12,14 @@
  * structure is used to represent a de-interleaved block.
  */
 struct block {
-    // The array containing the data codewords of this block,
-    // followed by its size
-    u_int8_t* data_codewords;
-    unsigned int n_data_codewords;
+    // The array containing all the codewords of this block.
+    // The first n_data_codewords are the data codewords
+    // and the remaining n_error_correction_codewords ones
+    // and the ones for error detection/correction
+    u_int8_t* codewords;
 
-    // The array containing the error correction codewords
-    // of this block followed by its size
+    unsigned int n_data_codewords;
     unsigned int n_error_correction_codewords;
-    u_int8_t* error_correction_codewords;
 
     // For most QR code sizes and error correction levels,
     // it is possible to correct t errors using 2t error correction
