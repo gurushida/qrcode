@@ -68,4 +68,9 @@ u_int8_t gf_add_or_subtract(u_int8_t a, u_int8_t b);
 u_int8_t gf_multiply(u_int8_t a, u_int8_t b);
 u_int8_t gf_inverse(u_int8_t a);
 
+/**
+ * Returns alpha^n, i.e. the nth power of the generator element.
+ */
+u_int8_t gf_power(u_int8_t n);
+
 #endif

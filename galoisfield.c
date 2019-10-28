@@ -79,15 +79,15 @@ static void initialize() {
     initialized = 1;
 }
 
-static u_int8_t power(u_int8_t a) {
+u_int8_t gf_power(u_int8_t n) {
     if (!initialized) {
         initialize();
     }
-    return powers[a];
+    return powers[n];
 }
 
 
-static u_int8_t log(u_int8_t a) {
+static u_int8_t gf_log(u_int8_t a) {
     if (!initialized) {
         initialize();
     }
@@ -104,11 +104,11 @@ u_int8_t gf_multiply(u_int8_t a, u_int8_t b) {
     if (a == 0 || b == 0) {
         return 0;
     }
-    return power((log(a) + log(b)) % 255);
+    return gf_power((gf_log(a) + gf_log(b)) % 255);
 }
 
 
 uint8_t gf_inverse(uint8_t a) {
-    return power(255 - log(a));
+    return gf_power(255 - gf_log(a));
 }
 
