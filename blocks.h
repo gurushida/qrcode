@@ -5,6 +5,8 @@
 
 #include "formatinformation.h"
 
+#define MAX_ERROR_CORRECTION_CAPACITY 15
+
 /**
  * Information is encoded into a QR code by splitting the data codewords
  * into blocks and to add for each block some error correction codewords.
