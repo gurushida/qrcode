@@ -26,6 +26,7 @@
 #include "finderpatterngroup.h"
 #include "formatinformation.h"
 #include "qrcodefinder.h"
+#include "reedsolomon.h"
 #include "rgbimage.h"
 #include "versioninformation.h"
 
@@ -63,12 +64,24 @@ int main(int argc, char* argv[]) {
             printf("Could not find code :(\n");
         } else {
             printf("Found code:\n");
+
+            printf("boolean[][] image = {\n");
+            for (unsigned int y = 0 ; y < code->modules->height ; y++) {
+                printf("   {");
+                for (unsigned int x = 0 ; x < code->modules->width ; x++) {
+                   printf(" %s,", is_black(code->modules, x, y) ? "true" : "false");
+                }
+                printf("},\n");
+            }
+            printf("};\n\n");
+
             for (unsigned int y = 0 ; y < code->modules->height ; y++) {
                 for (unsigned int x = 0 ; x < code->modules->width ; x++) {
                     printf("%c", is_black(code->modules, x, y) ? '*' : ' ');
                 }
                 printf("\n");
             }
+
             printf("B: %d,%d     C: %d,%d\n", code->top_left_x, code->top_left_y, code->top_right_x, code->top_right_y);
             printf("A: %d,%d     D: %d,%d\n", code->bottom_left_x, code->bottom_left_y, code->bottom_right_x, code->bottom_right_y);
 
@@ -92,7 +105,14 @@ int main(int argc, char* argv[]) {
                     free(codewords);
 
                     if (blocks != NULL) {
-
+                        for (unsigned int j = 0 ; j < blocks->n_blocks ; j++) {
+                            int res = error_correction(&(blocks->block[j]));
+                            if (res == -1) {
+                                printf("Could not decode block %d\n", j);
+                            } else {
+                                printf("Block %d decoded with %d error(s)\n", j, res);
+                            }
+                        }
                         free_blocks(blocks);
                     }
 
