@@ -137,7 +137,13 @@ int get_formation_information(struct bit_matrix* bm, ErrorCorrectionLevel *ec, u
     if (bestBitDifference > 3) {
         return -1;
     }
-    *ec = 3 - ((bestValue >> 3) & 3);
+    int bit_value = ((bestValue >> 3) & 3);
+    switch (bit_value) {
+        case 1: *ec = LOW; break;
+        case 0: *ec = MEDIUM; break;
+        case 3: *ec = QUARTILE; break;
+        case 2: *ec = HIGH; break;
+    }
     *mask_pattern = bestValue & 7;
 
     return 1;
