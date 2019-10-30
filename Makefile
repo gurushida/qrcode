@@ -1,17 +1,18 @@
-qrcode: main.c bitmatrix.c bitmatrix.h rgbimage.c rgbimage.h binarize.c binarize.h \
-        finderpattern.c finderpattern.h finderpatterngroup.c finderpatterngroup.h \
-		qrcodefinder.c qrcodefinder.h formatinformation.c formatinformation.h \
-		versioninformation.c versioninformation.h codewordmask.c codewordmask.h \
-		codewords.c codewords.h blocks.c blocks.h galoisfield.c galoisfield.h \
-		reedsolomon.c reedsolomon.h polynomial.c polynomial.h
-	$(CC) -lpng main.c bitmatrix.c rgbimage.c binarize.c finderpattern.c finderpatterngroup.c \
+
+SOURCES=bitmatrix.c rgbimage.c binarize.c finderpattern.c finderpatterngroup.c \
 	qrcodefinder.c formatinformation.c versioninformation.c codewordmask.c codewords.c \
-	blocks.c galoisfield.c reedsolomon.c polynomial.c \
-	-o qrcode -Wall -Wextra -pedantic -std=c99
+	blocks.c galoisfield.c reedsolomon.c polynomial.c
+
+qrcode: main.c $(SOURCES)
+	$(CC) -lpng main.c $(SOURCES) -o qrcode -Wall -Wextra -pedantic -std=c99
+
+qrcode_test: tests.c $(SOURCES)
+	$(CC) -lpng tests.c $(SOURCES) -o qrcode_test -Wall -Wextra -pedantic -std=c99
 
 install: qrcode
 	cp qrcode /usr/local/bin/
 
-test: qrcode
-	./qrcode images/225x225.png
+test: qrcode_test
+	./qrcode_test
+
 
