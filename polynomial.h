@@ -31,6 +31,49 @@ u_int8_t evaluate_polynomial(struct gf_polynomial* p, u_int8_t x);
 
 
 /**
+ * Returns the value of the coefficient for the given degree in the given
+ * polynomial or 0 if the given degree is greater than the degree of the
+ * polynomial.
+ */
+u_int8_t get_coefficient(struct gf_polynomial* a, unsigned int degree);
+
+
+/**
+ * Sets the given coefficient value for the given polynomial at the given degree.
+ * Returns 1 on success or 0 if the given degree is beyond the size of the coefficient
+ * array.
+ */
+int set_coefficient(struct gf_polynomial* a, unsigned int degree, u_int8_t coefficient);
+
+
+/**
+ * Returns the highest value i > 0 so that the coefficient for X^i is not not 0
+ * or 0 if the given polynomial is reduced to a constant.
+ */
+unsigned int get_degree(struct gf_polynomial* a);
+
+
+/**
+ * Allocates and returns a polynomial corresponding to a+b or NULL
+ * in case of memory allocation error.
+ */
+struct gf_polynomial* add_polynomials(struct gf_polynomial* a, struct gf_polynomial* b);
+
+
+/**
+ * Allocates and returns a polynomial corresponding to a.b or NULL
+ * in case of memory allocation error.
+ */
+struct gf_polynomial* multiply_polynomials(struct gf_polynomial* a, struct gf_polynomial* b);
+
+
+/**
+ * Returns 1 if a and b have same degree and coefficients.
+ */
+int equal_polynomials(struct gf_polynomial* a, struct gf_polynomial* b);
+
+
+/**
  * Allocates a polynomial for the given number of coefficients.
  *
  * @param n_coefficients The number of coefficients

@@ -60,6 +60,71 @@ static int test_reed_solomon2() {
 }
 
 
+static int test_get_degree() {
+    struct gf_polynomial* p = new_gf_polynomial(5, (uint8_t[]){ 0, 0, 0, 0, 0 });
+    int ok = 1;
+    ok = ok && (0 == get_degree(p));
+
+    p->coefficients[2] = 1;
+    ok = ok && (2 == get_degree(p));
+
+    p->coefficients[1] = 1;
+    ok = ok && (3 == get_degree(p));
+
+    free_gf_polynomial(p);
+    return ok;
+}
+
+
+static int test_get_coefficient() {
+    struct gf_polynomial* a = new_gf_polynomial(7, (uint8_t[]){ 0, 1, 1, 0, 1, 1, 1 });
+    int ok = 1 == get_coefficient(a, 0)
+        && 1 == get_coefficient(a, 1)
+        && 1 == get_coefficient(a, 2)
+        && 0 == get_coefficient(a, 3)
+        && 1 == get_coefficient(a, 4)
+        && 1 == get_coefficient(a, 5)
+        && 0 == get_coefficient(a, 6);
+    free_gf_polynomial(a);
+    return ok;
+}
+
+
+static int test_set_coefficient() {
+    struct gf_polynomial* a = new_gf_polynomial(7, (uint8_t[]){ 0, 1, 1, 0, 1, 1, 1 });
+    int ok = 1 == get_coefficient(a, 1);
+    set_coefficient(a, 1, 0);
+    ok = ok && 0 == get_coefficient(a, 1);
+    free_gf_polynomial(a);
+    return ok;
+}
+
+
+static int test_equal_polynomials() {
+    struct gf_polynomial* a = new_gf_polynomial(8, (uint8_t[]){ 0, 0, 1, 1, 0, 1, 1, 1 });
+    struct gf_polynomial* b = new_gf_polynomial(6, (uint8_t[]){ 1, 1, 0, 1, 1, 1 });
+    int ok = equal_polynomials(a, b);
+    free_gf_polynomial(a);
+    free_gf_polynomial(b);
+    return ok;
+}
+
+
+static int test_add_polynomials() {
+    struct gf_polynomial* a = new_gf_polynomial(7, (uint8_t[]){       1, 1, 0, 0, 0, 1, 1 });
+    struct gf_polynomial* b = new_gf_polynomial(9, (uint8_t[]){ 0, 0, 0, 1, 1, 0, 0, 1, 0 });
+    struct gf_polynomial* expected = new_gf_polynomial(7, (uint8_t[]){ 1, 0, 1, 0, 0, 0, 1 });
+    struct gf_polynomial* c = add_polynomials(a, b);
+    int ok = equal_polynomials(expected, c);
+
+    free_gf_polynomial(a);
+    free_gf_polynomial(b);
+    free_gf_polynomial(c);
+    free_gf_polynomial(expected);
+    return ok;
+}
+
+
 typedef int (*test)();
 
 int main() {
@@ -67,6 +132,11 @@ int main() {
     test tests[] = {
         test_reed_solomon1,
         test_reed_solomon2,
+        test_get_degree,
+        test_get_coefficient,
+        test_set_coefficient,
+        test_equal_polynomials,
+        test_add_polynomials,
         NULL
     };
     int total = 0;
@@ -76,6 +146,7 @@ int main() {
         printf("---------------- test #%d ----------------\n", i);
         if (!(tests[i]())) {
             failed++;
+            printf("============ test #%d failed! ============\n", i);
         }
     }
 
