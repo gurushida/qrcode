@@ -68,6 +68,18 @@ struct gf_polynomial* multiply_polynomials(struct gf_polynomial* a, struct gf_po
 
 
 /**
+ * Divides a by b and places the quotient and remainder.
+ * @return 1 on success
+ *         0 if a's degree is lower than b's degree (which means
+ *           that the quotient is 0 and b is the remainder)
+ *        -1 if b only contains zeroes
+ *        -2 in case of memory allocation error.
+ */
+int divide_polynomials(struct gf_polynomial* a, struct gf_polynomial* b,
+                        struct gf_polynomial* *quotient, struct gf_polynomial* *remainder);
+
+
+/**
  * Returns 1 if a and b have same degree and coefficients.
  */
 int equal_polynomials(struct gf_polynomial* a, struct gf_polynomial* b);

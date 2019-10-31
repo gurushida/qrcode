@@ -50,6 +50,9 @@ struct gf_polynomial* add_polynomials(struct gf_polynomial* a, struct gf_polynom
         struct gf_polynomial* tmp = a;
         a = b;
         b = tmp;
+        unsigned int n = degree_a;
+        degree_a = degree_b;
+        degree_b = n;
     }
 
     struct gf_polynomial* res = new_gf_polynomial(degree_a + 1, NULL);
@@ -130,5 +133,65 @@ int equal_polynomials(struct gf_polynomial* a, struct gf_polynomial* b) {
         }
     }
 
+    return 1;
+}
+
+
+int divide_polynomials(struct gf_polynomial* a, struct gf_polynomial* b,
+                        struct gf_polynomial* *quotient, struct gf_polynomial* *remainder) {
+    unsigned int degree_a = get_degree(a);
+    unsigned int degree_b = get_degree(b);
+    if (0 == get_degree(b) && 0 == get_coefficient(b, 0)) {
+        // We cannot divide by 0
+        return -1;
+    }
+    if (degree_a < degree_b) {
+        return 0;
+    }
+
+    // This implementation uses the extended synthetic division.
+    // It works in place in an array the same size as a
+    // which will eventually contain the coefficiients of both the
+    // quotient and remainder in the following order:
+    //
+    // q(n) q(n-1) ... q(0) r(m) ... r(0)
+    //
+    // where q(i) is the quotient coefficient for degree i.
+    u_int8_t* tmp = (u_int8_t*)malloc((degree_a + 1) * sizeof(u_int8_t));
+    if (tmp == NULL) {
+        return -2;
+    }
+
+    // Let's initialize the array by copying a into it
+    for (unsigned int i = 0 ; i <= degree_a ; i++) {
+        tmp[i] = get_coefficient(a, degree_a - i);
+    }
+
+    for (unsigned int i = 0 ; i < (degree_a - degree_b + 1) ; i++) {
+        uint8_t coeff = tmp[i];
+        if (coeff != 0) {
+            for (unsigned int j = 1 ; j <= degree_b ; j++) {
+                u_int8_t divisor_b = get_coefficient(b, j);
+                if (divisor_b != 0) {
+                    tmp[i + j] = gf_add_or_subtract(tmp[i + j], gf_multiply(divisor_b, coeff));
+                }
+            }
+        }
+    }
+
+    // When we are done, we construct the quotient and remainder from the array
+    *quotient = new_gf_polynomial(degree_a, tmp);
+    if ((*quotient) == NULL) {
+        free(tmp);
+        return -2;
+    }
+    *remainder = new_gf_polynomial(degree_b, tmp + degree_a);
+    if ((*remainder) == NULL) {
+        free(*quotient);
+        free(tmp);
+        return -2;
+    }
+
+    free(tmp);
     return 1;
 }

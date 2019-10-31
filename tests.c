@@ -31,6 +31,15 @@ static u_int8_t test_block[] = {
 static char* decoded_text = "'Twas brillig";
 
 
+static void print(char* name, struct gf_polynomial* p) {
+    printf("%s (d=%d):", name, get_degree(p));
+    for (unsigned int i = 0 ; i <= get_degree(p) ; i++) {
+        printf(" %d", get_coefficient(p, i));
+    }
+    printf("\n");
+}
+
+
 /**
  * Verifies that the syndromes are all 0 when there is no error.
  */
@@ -117,10 +126,115 @@ static int test_add_polynomials() {
     struct gf_polynomial* c = add_polynomials(a, b);
     int ok = equal_polynomials(expected, c);
 
+    free_gf_polynomial(c);
+    c = add_polynomials(b, a);
+    ok = ok && equal_polynomials(expected, c);
+
     free_gf_polynomial(a);
     free_gf_polynomial(b);
     free_gf_polynomial(c);
     free_gf_polynomial(expected);
+    return ok;
+}
+
+
+static int test_add_polynomials2() {
+    struct gf_polynomial* a = new_gf_polynomial(7, (uint8_t[]){           1, 1, 0, 0, 0, 1, 1 });
+    struct gf_polynomial* b = new_gf_polynomial(8, (uint8_t[]){        1, 1, 0, 0, 0, 1, 1, 0 });
+    struct gf_polynomial* expected = new_gf_polynomial(8, (uint8_t[]){ 1, 0, 1, 0, 0, 1, 0, 1 });
+    struct gf_polynomial* c = add_polynomials(a, b);
+
+    int ok = equal_polynomials(expected, c);
+
+    free_gf_polynomial(c);
+    c = add_polynomials(b, a);
+    ok = ok && equal_polynomials(expected, c);
+
+    free_gf_polynomial(a);
+    free_gf_polynomial(b);
+    free_gf_polynomial(c);
+    free_gf_polynomial(expected);
+    return ok;
+}
+
+
+/**
+ * Verifies that given a polynomial A, we have A.X+A = A.(X+1)
+ */
+static int test_multiply_polynomials() {
+    struct gf_polynomial* a = new_gf_polynomial(7, (uint8_t[]){ 1, 1, 0, 0, 0, 1, 1 });
+    struct gf_polynomial* x = new_gf_polynomial(2, (uint8_t[]){ 1, 0 });
+    struct gf_polynomial* x_1 = new_gf_polynomial(2, (uint8_t[]){ 1, 1 });
+    struct gf_polynomial* ax = multiply_polynomials(a, x);
+    struct gf_polynomial* ax_a1 = add_polynomials(ax, a);
+    struct gf_polynomial* ax_a2 = multiply_polynomials(a, x_1);
+    struct gf_polynomial* expected = new_gf_polynomial(8, (uint8_t[]){ 1, 0, 1, 0, 0, 1, 0, 1 });
+
+    int ok = equal_polynomials(expected, ax_a1);
+    ok = ok && equal_polynomials(expected, ax_a2);
+
+    free_gf_polynomial(a);
+    free_gf_polynomial(x);
+    free_gf_polynomial(x_1);
+    free_gf_polynomial(ax);
+    free_gf_polynomial(ax_a1);
+    free_gf_polynomial(ax_a2);
+    free_gf_polynomial(expected);
+    return ok;
+}
+
+
+/**
+ * Verifies that dividing a polynomial equal to A.(X+1) by
+ * (X+1) given A as the quotient and 0 as the remainder.
+ */
+static int test_divide_polynomials() {
+    struct gf_polynomial* a = new_gf_polynomial(8, (uint8_t[]){ 1, 0, 1, 0, 0, 1, 0, 1 });
+    struct gf_polynomial* b = new_gf_polynomial(2, (uint8_t[]){ 1, 1 });
+    struct gf_polynomial* expected_q = new_gf_polynomial(7, (uint8_t[]){ 1, 1, 0, 0, 0, 1, 1 });
+    struct gf_polynomial* expected_r = new_gf_polynomial(1, (uint8_t[]){ 0 });
+
+    struct gf_polynomial* quotient;
+    struct gf_polynomial* remainder;
+    int res = divide_polynomials(a, b, &quotient, &remainder);
+    int ok = res == 1
+        && equal_polynomials(expected_q, quotient)
+        && equal_polynomials(expected_r, remainder);
+
+    free_gf_polynomial(a);
+    free_gf_polynomial(b);
+    free_gf_polynomial(expected_q);
+    free_gf_polynomial(expected_r);
+    free_gf_polynomial(quotient);
+    free_gf_polynomial(remainder);
+    return ok;
+}
+
+
+/**
+ * Verifies that dividing a polynomial equal to A.(X+1)+1 by
+ * (X+1) given A as the quotient and 1 as the remainder.
+ */
+static int test_divide_polynomials2() {
+    struct gf_polynomial* a = new_gf_polynomial(8, (uint8_t[]){ 1, 0, 1, 0, 0, 1, 0, 0 });
+    struct gf_polynomial* b = new_gf_polynomial(2, (uint8_t[]){ 1, 1 });
+    struct gf_polynomial* expected_q = new_gf_polynomial(7, (uint8_t[]){ 1, 1, 0, 0, 0, 1, 1 });
+    struct gf_polynomial* expected_r = new_gf_polynomial(1, (uint8_t[]){ 1 });
+
+    struct gf_polynomial* quotient;
+    struct gf_polynomial* remainder;
+    int res = divide_polynomials(a, b, &quotient, &remainder);
+
+    int ok = res == 1
+        && equal_polynomials(expected_q, quotient)
+        && equal_polynomials(expected_r, remainder);
+
+    free_gf_polynomial(a);
+    free_gf_polynomial(b);
+    free_gf_polynomial(expected_q);
+    free_gf_polynomial(expected_r);
+    free_gf_polynomial(quotient);
+    free_gf_polynomial(remainder);
     return ok;
 }
 
@@ -137,6 +251,10 @@ int main() {
         test_set_coefficient,
         test_equal_polynomials,
         test_add_polynomials,
+        test_add_polynomials2,
+        test_multiply_polynomials,
+        test_divide_polynomials,
+        test_divide_polynomials2,
         NULL
     };
     int total = 0;
