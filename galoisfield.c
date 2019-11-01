@@ -72,7 +72,7 @@ static void initialize() {
 
     // Once we have all the powers of the generator,
     // it is trivial to fill up the logarithm table
-    for (int i = 0 ; i < 256 ; i++) {
+    for (int i = 0 ; i < 255 ; i++) {
         logarithms[powers[i]] = i;
     }
 
@@ -87,7 +87,7 @@ u_int8_t gf_power(u_int8_t n) {
 }
 
 
-static u_int8_t gf_log(u_int8_t a) {
+u_int8_t gf_log(u_int8_t a) {
     if (!initialized) {
         initialize();
     }

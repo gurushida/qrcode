@@ -73,4 +73,9 @@ u_int8_t gf_inverse(u_int8_t a);
  */
 u_int8_t gf_power(u_int8_t n);
 
+/**
+ * Returns n so that a = alpha^n
+ */
+u_int8_t gf_log(u_int8_t a);
+
 #endif
