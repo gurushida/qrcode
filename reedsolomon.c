@@ -36,3 +36,31 @@ int error_correction(struct block* b) {
 
     return -1;
 }
+
+
+struct gf_polynomial* get_error_locator_polynomial(unsigned int n) {
+    struct gf_polynomial* res = new_gf_polynomial(1, (u_int8_t[]){ 1 });
+    if (res == NULL) {
+        return NULL;
+    }
+    struct gf_polynomial* term = new_gf_polynomial(2, (u_int8_t[]){ 1, 1 });
+    if (term == NULL) {
+        free(res);
+        return NULL;
+    }
+
+    for (unsigned int i = 1 ; i <= n ; i++) {
+        set_coefficient(term, 1, gf_power(i));
+        struct gf_polynomial* tmp = multiply_polynomials(res, term);
+        if (tmp == NULL) {
+            free(res);
+            free(term);
+            return NULL;
+        }
+        free_gf_polynomial(res);
+        res = tmp;
+    }
+    free_gf_polynomial(term);
+    return res;
+}
+

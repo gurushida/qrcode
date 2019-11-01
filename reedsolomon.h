@@ -64,4 +64,14 @@ int error_correction(struct block* b);
  */
 unsigned int calculate_syndromes(struct gf_polynomial* message, struct gf_polynomial* syndromes);
 
+
+/**
+ * Returns the error locator polynomial that consists of
+ * the products of all the terms (1 - alpha^i . X) where
+ * alpha is the generator of the Galois field and i between
+ * 1 and n. Returns null in case of memory allocation error.
+ */
+struct gf_polynomial* get_error_locator_polynomial(unsigned int n);
+
+
 #endif
