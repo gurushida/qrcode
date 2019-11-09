@@ -4,12 +4,10 @@
 #include <stdint.h>
 
 /**
- * Given a byte array contained the encoded codewords, this function
- * decodes these bytes to expose the data that was encoded in the QR
- * code.
+ * Given a bitstream containing the encoded codewords, this function
+ * decodes it to expose the data that was encoded in the QR code.
  *
- * @param bytes The bytes to decode
- * @param n_bytes The size of the byte array
+ * @param stream The bitstream to decode
  * @param version The QR code version (between 1 and 40)
  * @param decoded Where to store the decoded data. This will be dynamically alloced and filled
  *                with the data on success
@@ -17,6 +15,6 @@
  *         0 on decoding error or if the given version is invalid
  *        -1 on memory allocation error
  */
-int decode_bitstream(u_int8_t* bytes, unsigned int n_bytes, unsigned int version, u_int8_t* *decoded);
+int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *decoded);
 
 #endif

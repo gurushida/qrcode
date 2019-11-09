@@ -436,12 +436,21 @@ int test_bitstream() {
 
 
 int test_decode_bitstream() {
+    struct bitstream* s = new_bitstream(16);
+    if (s == NULL) {
+        return 0;
+    }
+    memcpy(s->bytes, test_block, 16);
+
     u_int8_t* decoded;
-    int n = decode_bitstream(test_block, 16, 1, &decoded);
-    if (n < 0) {
+    int n = decode_bitstream(s, 1, &decoded);
+    free_bitstream(s);
+    if (n <= 0) {
         return 0;
     }
 
+    int ok = 0 == memcmp(decoded, decoded_text, n);
+    free(decoded);
     return 1;
 }
 
