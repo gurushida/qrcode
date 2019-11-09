@@ -22,18 +22,6 @@ struct block {
 
     unsigned int n_data_codewords;
     unsigned int n_error_correction_codewords;
-
-    // For most QR code sizes and error correction levels,
-    // it is possible to correct t errors using 2t error correction
-    // codewords. For small sizes however, there is a risk of misdecoding
-    // errors instead of detecting that there are errors which would produce
-    // wrong data. To prevent this, there is a value p representing the
-    // number of miscdecode protection codewords to be used only for
-    // detecting errors but not correcting them. Most of the time p = 0.
-    unsigned int p;
-
-    // The maximum number of errors that can be corrected on this block
-    unsigned int error_correction_capacity;
 };
 
 
