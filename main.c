@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "binarize.h"
+#include "bitstreamdecoder.h"
 #include "blocks.h"
 #include "codewords.h"
 #include "codewordmask.h"
@@ -64,17 +65,6 @@ int main(int argc, char* argv[]) {
             printf("Could not find code :(\n");
         } else {
             printf("Found code:\n");
-
-            printf("boolean[][] image = {\n");
-            for (unsigned int y = 0 ; y < code->modules->height ; y++) {
-                printf("   {");
-                for (unsigned int x = 0 ; x < code->modules->width ; x++) {
-                   printf(" %s,", is_black(code->modules, x, y) ? "true" : "false");
-                }
-                printf("},\n");
-            }
-            printf("};\n\n");
-
             for (unsigned int y = 0 ; y < code->modules->height ; y++) {
                 for (unsigned int x = 0 ; x < code->modules->width ; x++) {
                     printf("%c", is_black(code->modules, x, y) ? '*' : ' ');
@@ -110,7 +100,11 @@ int main(int argc, char* argv[]) {
                         free_blocks(blocks);
                         if (res == 1) {
                             printf("Decoded message of %d bytes\n", bitstream->n_bytes);
-
+                            u_int8_t* message;
+                            if (decode_bitstream(bitstream, version, &message) >= 0) {
+                                printf("MESSAGE: '%s'\n", message);
+                                free(message);
+                            }
                             free_bitstream(bitstream);
                         }
                     }
