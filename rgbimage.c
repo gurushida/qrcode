@@ -26,11 +26,11 @@ struct rgb_image* load_rgb_image(char* filename) {
         free(img);
         return NULL;
     }
-    png_color black_background;
-    black_background.red = 0;
-    black_background.green = 0;
-    black_background.blue = 0;
-    if (!png_image_finish_read(&image, &black_background, img->buffer, 0, NULL)) {
+    png_color background;
+    background.red = 255;
+    background.green = 255;
+    background.blue = 255;
+    if (!png_image_finish_read(&image, &background, img->buffer, 0, NULL)) {
         free(img->buffer);
         free(img);
         fprintf(stderr, "Cannot read image from '%s'\n", filename);
