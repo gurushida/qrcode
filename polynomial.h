@@ -102,4 +102,31 @@ struct gf_polynomial* new_gf_polynomial(unsigned int n_coefficients, u_int8_t* c
  */
 void free_gf_polynomial(struct gf_polynomial* p);
 
+
+/**
+ * A function to print the given polynomial for debug purposes.
+ */
+void poly_print(char* name, struct gf_polynomial* p);
+
+
+/**
+ * Returns 1 if the given polynomial has all its coefficients to zero;
+ * 0 otherwise.
+ */
+int is_zero_polynomial(struct gf_polynomial* p);
+
+
+/**
+ * Returns a polynomial representing the given monomial coefficient.X^degree
+ * or NULL in case of memory allocation error.
+ */
+struct gf_polynomial* get_monomial(unsigned int degree, u_int8_t coefficient);
+
+
+/**
+ * Modifies the given polynomial by multiplying all its coefficients
+ * by the given scalar.
+ */
+void multiply_by_scalar(struct gf_polynomial* p, u_int8_t scalar);
+
 #endif

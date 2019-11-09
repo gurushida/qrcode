@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "galoisfield.h"
@@ -194,4 +195,64 @@ int divide_polynomials(struct gf_polynomial* a, struct gf_polynomial* b,
 
     free(tmp);
     return 1;
+}
+
+
+void poly_print(char* name, struct gf_polynomial* p) {
+    printf("%s (d=%d):", name, get_degree(p));
+    if (is_zero_polynomial(p)) {
+        printf("0\n");
+        return;
+    }
+    int first = 1;
+    for (int i = get_degree(p) ; i >= 0 ; i--) {
+        u_int8_t v = get_coefficient(p, i);
+        if (v != 0) {
+            if (first) {
+                first = 0;
+            } else {
+                printf(" +");
+            }
+            if (v != 1) {
+                printf(" a^%d", gf_log(v));
+                if (i > 0) {
+                    printf(".");
+                }
+            } else if (i == 0) {
+                printf(" 1");
+            }
+            if (i == 1) {
+                printf("X");
+            } else if (i > 1) {
+                printf("X^%d", i);
+            }
+        }
+    }
+    printf("\n");
+}
+
+
+int is_zero_polynomial(struct gf_polynomial* p) {
+    for (unsigned int i = 0 ; i < p->n_coefficients ; i++) {
+        if (p->coefficients[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+struct gf_polynomial* get_monomial(unsigned int degree, u_int8_t coefficient) {
+    struct gf_polynomial* p = new_gf_polynomial(degree + 1, NULL);
+    if (p == NULL) {
+        return NULL;
+    }
+    set_coefficient(p, degree, coefficient);
+    return p;
+}
+
+
+void multiply_by_scalar(struct gf_polynomial* p, u_int8_t scalar) {
+    for (unsigned int i = 0 ; i < p->n_coefficients ; i++) {
+        p->coefficients[i] = gf_multiply(p->coefficients[i], scalar);
+    }
 }
