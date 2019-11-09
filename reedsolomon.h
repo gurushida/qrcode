@@ -1,6 +1,7 @@
 #ifndef _REEDSOLOMON_H
 #define _REEDSOLOMON_H
 
+#include "bitstream.h"
 #include "blocks.h"
 #include "polynomial.h"
 
@@ -125,15 +126,15 @@ void find_error_magnitudes(struct gf_polynomial* omega, unsigned int n_errors,
 /**
  * Given a list of blocks, this function performs error detection/correction
  * on them and if all blocks can be decoded correctly, aggregates the data
- * bytes in a message buffer.
+ * bytes in a bitstream buffer.
  *
  * @param blocks The (data+error) blocks from the QR code
- * @param message On success, *message will be allocated and filled with
+ * @param bitstream On success, *bitstream will be allocated and filled with
  *                the correct data codewords
- * @return n > 0 on success, where n is the size of the message array
+ * @return 1 on success
  *         0 if a block cannot be successfully decoded
  *        -1 in case of memory allocation error
  */
-int get_message_bytes(struct blocks* blocks, u_int8_t* *message);
+int get_message_bitstream(struct blocks* blocks, struct bitstream* *bitstream);
 
 #endif

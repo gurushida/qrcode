@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "bitstream.h"
+#include "bitstreamdecoder.h"
 #include "galoisfield.h"
 #include "reedsolomon.h"
 
@@ -411,6 +413,38 @@ int test_error_correction4() {
 }
 
 
+int test_bitstream() {
+    struct bitstream* s = new_bitstream(4);
+    if (s == NULL) {
+        return 0;
+    }
+    s->bytes[0] = 0x12;
+    s->bytes[1] = 0x34;
+    s->bytes[2] = 0x56;
+    s->bytes[3] = 0x78;
+
+    int ok = 32 == remaining_bits(s);
+    ok = ok && 0x1 == read_bits(s, 4) && 28 == remaining_bits(s);
+    ok = ok && 0x234 == read_bits(s, 12) && 16 == remaining_bits(s);
+    ok = ok && 0x567 == read_bits(s, 12) && 4 == remaining_bits(s);
+    ok = ok && 2 == read_bits(s, 2) && 2 == remaining_bits(s);
+    ok = ok && 0 == read_bits(s, 2) && 0 == remaining_bits(s);
+
+    free_bitstream(s);
+    return ok;
+}
+
+
+int test_decode_bitstream() {
+    u_int8_t* decoded;
+    int n = decode_bitstream(test_block, 16, 1, &decoded);
+    if (n < 0) {
+        return 0;
+    }
+
+    return 1;
+}
+
 
 typedef int (*test)();
 
@@ -436,6 +470,8 @@ int main() {
         test_error_correction2,
         test_error_correction3,
         test_error_correction4,
+        test_bitstream,
+        test_decode_bitstream,
         NULL
     };
     int total = 0;

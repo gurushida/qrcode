@@ -105,13 +105,13 @@ int main(int argc, char* argv[]) {
                     free(codewords);
 
                     if (blocks != NULL) {
-                        u_int8_t* data;
-                        int n_data = get_message_bytes(blocks, &data);
+                        struct bitstream* bitstream;
+                        int res = get_message_bitstream(blocks, &bitstream);
                         free_blocks(blocks);
-                        if (n_data > 0) {
-                            printf("Decoded message of %d bytes\n", n_data);
+                        if (res == 1) {
+                            printf("Decoded message of %d bytes\n", bitstream->n_bytes);
 
-                            free(data);
+                            free_bitstream(bitstream);
                         }
                     }
 

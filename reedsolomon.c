@@ -305,7 +305,7 @@ int error_correction(struct block* b) {
 }
 
 
-int get_message_bytes(struct blocks* blocks, u_int8_t* *message) {
+int get_message_bitstream(struct blocks* blocks, struct bitstream* *bitstream) {
     unsigned int n = 0;
     for (unsigned int i = 0 ; i < blocks->n_blocks ; i++) {
         n += blocks->block[i].n_data_codewords;
@@ -320,17 +320,17 @@ int get_message_bytes(struct blocks* blocks, u_int8_t* *message) {
         }
     }
 
-    (*message) = (u_int8_t*)malloc(n * sizeof(u_int8_t));
-    if ((*message) == NULL) {
+    (*bitstream) = new_bitstream(n);
+    if ((*bitstream) == NULL) {
         return -1;
     }
 
     unsigned int pos = 0;
     for (unsigned int i = 0 ; i < blocks->n_blocks ; i++) {
         int n_bytes = blocks->block[i].n_data_codewords * sizeof(u_int8_t);
-        memcpy((*message) + pos, blocks->block[i].codewords, n_bytes);
+        memcpy((*bitstream)->bytes + pos, blocks->block[i].codewords, n_bytes);
         pos += n_bytes;
     }
 
-    return n;
+    return 1;
 }
