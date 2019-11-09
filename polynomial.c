@@ -80,10 +80,10 @@ struct gf_polynomial* multiply_polynomials(struct gf_polynomial* a, struct gf_po
     }
 
     for (unsigned int i = 0 ; i <= degree_a ; i++) {
-        uint8_t v_a = a->coefficients[i];
+        uint8_t v_a = get_coefficient(a, degree_a - i);
         for (unsigned int j = 0 ; j <= degree_b ; j++) {
             u_int8_t value = res->coefficients[i + j];
-            uint8_t v_b = b->coefficients[j];
+            uint8_t v_b = get_coefficient(b, degree_b - j);
             res->coefficients[i + j] = gf_add_or_subtract(value, gf_multiply(v_a, v_b));
         }
     }
