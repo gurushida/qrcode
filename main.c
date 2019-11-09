@@ -105,15 +105,14 @@ int main(int argc, char* argv[]) {
                     free(codewords);
 
                     if (blocks != NULL) {
-                        for (unsigned int j = 0 ; j < blocks->n_blocks ; j++) {
-                            int res = error_correction(&(blocks->block[j]));
-                            if (res == -1) {
-                                printf("Could not decode block %d\n", j);
-                            } else {
-                                printf("Block %d decoded with %d error(s)\n", j, res);
-                            }
-                        }
+                        u_int8_t* data;
+                        int n_data = get_message_bytes(blocks, &data);
                         free_blocks(blocks);
+                        if (n_data > 0) {
+                            printf("Decoded message of %d bytes\n", n_data);
+
+                            free(data);
+                        }
                     }
 
                 } else if (ret == -1) {

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "galoisfield.h"
 #include "polynomial.h"
 #include "reedsolomon.h"
@@ -301,4 +302,35 @@ int error_correction(struct block* b) {
     free(error_magnitudes);
 
     return n_errors;
+}
+
+
+int get_message_bytes(struct blocks* blocks, u_int8_t* *message) {
+    unsigned int n = 0;
+    for (unsigned int i = 0 ; i < blocks->n_blocks ; i++) {
+        n += blocks->block[i].n_data_codewords;
+        int res = error_correction(&(blocks->block[i]));
+        if (res == -2) {
+            // memory error
+            return -1;
+        }
+        if (res == -1) {
+            // decoding error
+            return 0;
+        }
+    }
+
+    (*message) = (u_int8_t*)malloc(n * sizeof(u_int8_t));
+    if ((*message) == NULL) {
+        return -1;
+    }
+
+    unsigned int pos = 0;
+    for (unsigned int i = 0 ; i < blocks->n_blocks ; i++) {
+        int n_bytes = blocks->block[i].n_data_codewords * sizeof(u_int8_t);
+        memcpy((*message) + pos, blocks->block[i].codewords, n_bytes);
+        pos += n_bytes;
+    }
+
+    return n;
 }

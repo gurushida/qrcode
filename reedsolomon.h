@@ -121,4 +121,19 @@ int find_error_locations(struct gf_polynomial* sigma, u_int8_t* locations);
 void find_error_magnitudes(struct gf_polynomial* omega, unsigned int n_errors,
                             u_int8_t* error_locations, u_int8_t* error_magnitudes);
 
+
+/**
+ * Given a list of blocks, this function performs error detection/correction
+ * on them and if all blocks can be decoded correctly, aggregates the data
+ * bytes in a message buffer.
+ *
+ * @param blocks The (data+error) blocks from the QR code
+ * @param message On success, *message will be allocated and filled with
+ *                the correct data codewords
+ * @return n > 0 on success, where n is the size of the message array
+ *         0 if a block cannot be successfully decoded
+ *        -1 in case of memory allocation error
+ */
+int get_message_bytes(struct blocks* blocks, u_int8_t* *message);
+
 #endif
