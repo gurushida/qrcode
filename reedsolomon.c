@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "galoisfield.h"
 #include "polynomial.h"
@@ -9,12 +10,225 @@ unsigned int calculate_syndromes(struct gf_polynomial* message, struct gf_polyno
     unsigned int n_syndromes = syndromes->n_coefficients;
     for (unsigned int i = 0 ; i < n_syndromes ; i++) {
         u_int8_t x = gf_power(i);
-        syndromes->coefficients[i] = evaluate_polynomial(message, x);
+        syndromes->coefficients[n_syndromes - 1 - i] = evaluate_polynomial(message, x);
         if (syndromes->coefficients[i]) {
             n++;
         }
     }
     return n;
+}
+
+
+/**
+ * Returns a polynomial with all coefficients to zero or null in case
+ * of memory allocation error.
+ */
+static struct gf_polynomial* zero() {
+    return get_monomial(0, 0);
+}
+
+
+/**
+ * Returns a polynomial with equal to the constant term 1 or null in case
+ * of memory allocation error.
+ */
+static struct gf_polynomial* one() {
+    return get_monomial(0, 1);
+}
+
+
+int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_correction_codewords,
+                            struct gf_polynomial* *sigma, struct gf_polynomial* *omega) {
+
+    struct gf_polynomial* syndromes_copy = new_gf_polynomial(syndromes->n_coefficients, syndromes->coefficients);
+    if (syndromes_copy == NULL) {
+        return -1;
+    }
+    struct gf_polynomial* monomial = get_monomial(n_error_correction_codewords, 1);
+    if (monomial == NULL) {
+        free_gf_polynomial(syndromes_copy);
+        return -1;
+    }
+    set_coefficient(monomial, n_error_correction_codewords, 1);
+
+    struct gf_polynomial* rLast;
+    struct gf_polynomial* r;
+    struct gf_polynomial* tLast = zero();
+    if (tLast == NULL) {
+        free_gf_polynomial(syndromes_copy);
+        free_gf_polynomial(monomial);
+        return -1;
+    }
+    struct gf_polynomial* t = one();
+    if (t == NULL) {
+        free_gf_polynomial(syndromes_copy);
+        free_gf_polynomial(monomial);
+        free_gf_polynomial(tLast);
+        return -1;
+    }
+
+    // Let's make sure that rLast is the one with the highest degree
+    if (get_degree(syndromes_copy) < n_error_correction_codewords) {
+        rLast = monomial;
+        r = syndromes_copy;
+    } else {
+        rLast = syndromes_copy;
+        r = monomial;
+    }
+
+    // Now let's divide rLast by r
+    while (get_degree(r) >= n_error_correction_codewords / 2) {
+        struct gf_polynomial* rLastLast = rLast;
+        struct gf_polynomial* tLastLast = tLast;
+        rLast = r;
+        tLast = t;
+
+        if (is_zero_polynomial(rLast)) {
+            free_gf_polynomial(r);
+            free_gf_polynomial(t);
+            free_gf_polynomial(rLast);
+            free_gf_polynomial(tLast);
+            return 0;
+        }
+
+        r = rLastLast;
+        struct gf_polynomial* q = zero();
+        if (q == NULL) {
+            free_gf_polynomial(r);
+            free_gf_polynomial(t);
+            free_gf_polynomial(rLast);
+            free_gf_polynomial(tLast);
+            return -1;
+        }
+
+        u_int8_t denominator_leading_term = get_coefficient(rLast, get_degree(rLast));
+        u_int8_t dlt_inverse = gf_inverse(denominator_leading_term);
+
+        while (get_degree(r) >= get_degree(rLast) && !is_zero_polynomial(r)) {
+            int degree_diff = get_degree(r) - get_degree(rLast);
+            u_int8_t scale = gf_multiply(get_coefficient(r, get_degree(r)), dlt_inverse);
+
+            struct gf_polynomial* scale_monomial = get_monomial(degree_diff, scale);
+            if (scale_monomial == NULL) {
+                free_gf_polynomial(r);
+                free_gf_polynomial(t);
+                free_gf_polynomial(rLast);
+                free_gf_polynomial(tLast);
+                return -1;
+            }
+            struct gf_polynomial* new_q = add_polynomials(q, scale_monomial);
+            if (new_q == NULL) {
+                free_gf_polynomial(r);
+                free_gf_polynomial(t);
+                free_gf_polynomial(rLast);
+                free_gf_polynomial(tLast);
+                free_gf_polynomial(scale_monomial);
+                return -1;
+            }
+            free_gf_polynomial(q);
+            q = new_q;
+
+            struct gf_polynomial* tmp = multiply_polynomials(rLast, scale_monomial);
+            if (tmp == NULL) {
+                free_gf_polynomial(r);
+                free_gf_polynomial(t);
+                free_gf_polynomial(rLast);
+                free_gf_polynomial(tLast);
+                free_gf_polynomial(scale_monomial);
+                return -1;
+            }
+            struct gf_polynomial* new_r = add_polynomials(r, tmp);
+            if (new_r == NULL) {
+                free_gf_polynomial(r);
+                free_gf_polynomial(t);
+                free_gf_polynomial(rLast);
+                free_gf_polynomial(tLast);
+                free_gf_polynomial(scale_monomial);
+                free_gf_polynomial(tmp);
+                return -1;
+            }
+            r = new_r;
+            free_gf_polynomial(tmp);
+            free_gf_polynomial(scale_monomial);
+        }
+
+        struct gf_polynomial* q_x_tLast = multiply_polynomials(q, tLast);
+        if (q_x_tLast == NULL) {
+            free_gf_polynomial(r);
+            free_gf_polynomial(t);
+            free_gf_polynomial(rLast);
+            free_gf_polynomial(tLast);
+            free_gf_polynomial(q);
+            return -1;
+        }
+        struct gf_polynomial* new_t = add_polynomials(q_x_tLast, tLastLast);
+        if (new_t == NULL) {
+            free_gf_polynomial(r);
+            free_gf_polynomial(t);
+            free_gf_polynomial(rLast);
+            free_gf_polynomial(tLast);
+            free_gf_polynomial(q_x_tLast);
+            free_gf_polynomial(q);
+            return -1;
+        }
+        t = new_t;
+        free_gf_polynomial(q_x_tLast);
+        free_gf_polynomial(q);
+
+        if (get_degree(r) >= get_degree(rLast)) {
+            free_gf_polynomial(r);
+            free_gf_polynomial(t);
+            free_gf_polynomial(rLast);
+            free_gf_polynomial(tLast);
+            return 0;
+        }
+    }
+
+    u_int8_t sigma_tilde_at_0 = get_coefficient(t, 0);
+    if (sigma_tilde_at_0 == 0) {
+        free_gf_polynomial(r);
+        free_gf_polynomial(t);
+        free_gf_polynomial(rLast);
+        free_gf_polynomial(tLast);
+        return 0;
+    }
+    u_int8_t inverse = gf_inverse(sigma_tilde_at_0);
+    multiply_by_scalar(t, inverse);
+    multiply_by_scalar(r, inverse);
+    *sigma = t;
+    *omega = r;
+
+    free_gf_polynomial(rLast);
+    free_gf_polynomial(tLast);
+    return 1;
+}
+
+
+int find_error_locations(struct gf_polynomial* sigma, u_int8_t* locations) {
+    unsigned int n_errors = get_degree(sigma);
+    unsigned int n = 0;
+    for (unsigned int i = 1 ; i <= 255 && n < n_errors; i++) {
+        if (evaluate_polynomial(sigma, i) == 0) {
+            locations[n++] = gf_inverse(i);
+        }
+    }
+    return n == n_errors;
+}
+
+
+void find_error_magnitudes(struct gf_polynomial* omega, unsigned int n_errors,
+                            u_int8_t* error_locations, u_int8_t* error_magnitudes) {
+    for (unsigned int i = 0 ; i < n_errors ; i++) {
+        u_int8_t xi_inverse = gf_inverse(error_locations[i]);
+        u_int8_t denominator = 1;
+        for (unsigned int j = 0 ; j < n_errors ; j++) {
+            if (i != j) {
+                denominator = gf_multiply(denominator,
+                                            gf_add_or_subtract(1, gf_multiply(error_locations[j], xi_inverse)));
+            }
+        }
+        error_magnitudes[i] = gf_multiply(evaluate_polynomial(omega, xi_inverse), gf_inverse(denominator));
+    }
 }
 
 
@@ -32,35 +246,59 @@ int error_correction(struct block* b) {
         return 0;
     }
 
+    struct gf_polynomial* sigma;
+    struct gf_polynomial* omega;
+
+    int res = calculate_sigma_omega(syndromes, 10, &sigma, &omega);
+    if (res == -1) {
+        free_gf_polynomial(syndromes);
+        return -2;
+    }
+    if (res == 0) {
+        free_gf_polynomial(syndromes);
+        return -1;
+    }
+
+    unsigned int n_errors = get_degree(sigma);
+
+    u_int8_t* error_locations = (u_int8_t*)malloc(n_errors * sizeof(u_int8_t));
+    if (error_locations == NULL) {
+        free_gf_polynomial(syndromes);
+        free_gf_polynomial(sigma);
+        free_gf_polynomial(omega);
+        return -2;
+    }
+
+    res = find_error_locations(sigma, error_locations);
+    if (res == 0) {
+        free_gf_polynomial(syndromes);
+        free_gf_polynomial(sigma);
+        free_gf_polynomial(omega);
+        free(error_locations);
+        return -1;
+    }
+
+    u_int8_t* error_magnitudes = (u_int8_t*)malloc(n_errors * sizeof(u_int8_t));
+    if (error_magnitudes == NULL) {
+        free_gf_polynomial(syndromes);
+        free_gf_polynomial(sigma);
+        free_gf_polynomial(omega);
+        free(error_locations);
+        return -2;
+    }
+    find_error_magnitudes(omega, n_errors, error_locations, error_magnitudes);
+
+    // Finally, let's apply the corrections
+    for (unsigned int i = 0 ; i < n_errors ; i++) {
+        unsigned int pos = message.n_coefficients - 1 - gf_log(error_locations[i]);
+        b->codewords[pos] = gf_add_or_subtract(b->codewords[pos], error_magnitudes[i]);
+    }
+
     free_gf_polynomial(syndromes);
+    free_gf_polynomial(sigma);
+    free_gf_polynomial(omega);
+    free(error_locations);
+    free(error_magnitudes);
 
-    return -1;
+    return n_errors;
 }
-
-
-struct gf_polynomial* get_error_locator_polynomial(unsigned int n) {
-    struct gf_polynomial* res = new_gf_polynomial(1, (u_int8_t[]){ 1 });
-    if (res == NULL) {
-        return NULL;
-    }
-    struct gf_polynomial* term = new_gf_polynomial(2, (u_int8_t[]){ 1, 1 });
-    if (term == NULL) {
-        free(res);
-        return NULL;
-    }
-
-    for (unsigned int i = 1 ; i <= n ; i++) {
-        set_coefficient(term, 1, gf_power(i));
-        struct gf_polynomial* tmp = multiply_polynomials(res, term);
-        if (tmp == NULL) {
-            free(res);
-            free(term);
-            return NULL;
-        }
-        free_gf_polynomial(res);
-        res = tmp;
-    }
-    free_gf_polynomial(term);
-    return res;
-}
-

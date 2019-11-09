@@ -36,6 +36,8 @@
  * so that the data codewords at beginning of the codeword array are
  * the correct codewords to be used to decode the QR code.
  *
+ * The implementation is a port of the one in the zxing project.
+ *
  * @param b The single block to decode
  * @return On success, a value n>=0 representing the number of errors
  *         that were corrected; -1 if the block could not be decoded
@@ -66,12 +68,57 @@ unsigned int calculate_syndromes(struct gf_polynomial* message, struct gf_polyno
 
 
 /**
- * Returns the error locator polynomial that consists of
- * the products of all the terms (1 - alpha^i . X) where
- * alpha is the generator of the Galois field and i between
- * 1 and n. Returns null in case of memory allocation error.
+ * Given the syndromes, this function uses the Euclidian algorithm to
+ * obtain the error locator polynomial (often referred to as sigma) and
+ * the error evaluator polynomial (often referred to as omega).
+ *
+ * @param syndromes The syndrome polynomial
+ * @param n_error_correction_codewords The number of non-data codewords in the message
+ * @param sigma Where to store the error locator polynomial
+ * @param omega Where to store the error evalutator polynomial
+ * @return 1 in case of success
+ *         0 in case of internal error
+ *        -1 in case of memory allocation error
  */
-struct gf_polynomial* get_error_locator_polynomial(unsigned int n);
+int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_correction_codewords,
+                            struct gf_polynomial* *sigma, struct gf_polynomial* *omega);
 
+
+/**
+ * Given a sigma calculated for a message with errors, this function
+ * returns all the values alpha^i so that (1/alpha^i) is a root of sigma.
+ * As it turns out, each such alpha^i root indicates that there is an
+ * error at the codeword corresponding to the degree i.
+ *
+ * For instance, with a message like A_BC_E_G...ZZZ with errors
+ * at positions 1, 4 and 6, the error positions would correspond
+ * to the monomials X^24, X^21 and and X^19, so the error locations
+ * returned by the function would be alpha^24, alpha^21 and alpha^19
+ *
+ * @param sigma The error evaluator polynomial whose degree is the number
+ *              of errors
+ * @param locations An array of size degree(sigma) where to put the alpha^i
+ *                  values
+ * @return 1 on success or 0 if the number of roots does not match not match the
+ *         expected number of errors which indicates that we cannot correct
+ *         the errors
+ */
+int find_error_locations(struct gf_polynomial* sigma, u_int8_t* locations);
+
+
+/**
+ * Given the error evaluator polynomial and the error positions,
+ * this function calculates the error magnitudes, i.e. for each error
+ * position alpha^i calculates the value m so that adding m.X^i to the
+ * message polynomial will correct the error.
+ *
+ * @param omega The error evaluator polynomial
+ * @param n_errors The size of the error_locations and error_magnitudes arrays
+ * @param error_locations The error position given as alpha^i where i is the degree
+ *                        of the error in the message polynomial
+ * @param error_magnitudes Where to store the error magnitudes
+ */
+void find_error_magnitudes(struct gf_polynomial* omega, unsigned int n_errors,
+                            u_int8_t* error_locations, u_int8_t* error_magnitudes);
 
 #endif

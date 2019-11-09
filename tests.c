@@ -1,23 +1,15 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
+#include "galoisfield.h"
 #include "reedsolomon.h"
 
 
 /**
- * These examples come from:
+ * This example come from:
  * https://en.wikiversity.org/wiki/Reed%E2%80%93Solomon_codes_for_coders
- */
-
-/**
- * This is a 16 bytes message, suitable for a version 1 QR code with medium
- * error correction.
- */
-static u_int8_t test_data[] = {
-    0x40, 0xd2, 0x75, 0x47, 0x76, 0x17, 0x32, 0x06, 0x27, 0x26, 0x96, 0xc6, 0xc6, 0x96, 0x70, 0xec
-};
-
-/**
+ *
  * This corresponds to test_data + the 10 error codewords obtained when applying
  * medium error correction level.
  */
@@ -29,15 +21,6 @@ static u_int8_t test_block[] = {
 };
 
 static char* decoded_text = "'Twas brillig";
-
-
-static void print(char* name, struct gf_polynomial* p) {
-    printf("%s (d=%d):", name, get_degree(p));
-    for (unsigned int i = 0 ; i <= get_degree(p) ; i++) {
-        printf(" %d", get_coefficient(p, i));
-    }
-    printf("\n");
-}
 
 
 /**
@@ -184,6 +167,43 @@ static int test_multiply_polynomials() {
 }
 
 
+static int test_multiply_by_monomial() {
+    struct gf_polynomial* a = new_gf_polynomial(10, (uint8_t[]) {
+        0,
+        gf_power(142),
+        gf_power(151),
+        gf_power(92),
+        gf_power(169),
+        gf_power(212),
+        gf_power(51),
+        gf_power(213),
+        gf_power(205),
+        gf_power(34)
+    });
+    struct gf_polynomial* x = new_gf_polynomial(2, (uint8_t[]){ gf_power(156), 0 });
+    struct gf_polynomial* product = multiply_polynomials(a, x);
+    struct gf_polynomial* expected = new_gf_polynomial(10, (uint8_t[]) {
+        gf_multiply(gf_power(156), gf_power(142)),
+        gf_multiply(gf_power(156), gf_power(151)),
+        gf_multiply(gf_power(156), gf_power(92)),
+        gf_multiply(gf_power(156), gf_power(169)),
+        gf_multiply(gf_power(156), gf_power(212)),
+        gf_multiply(gf_power(156), gf_power(51)),
+        gf_multiply(gf_power(156), gf_power(213)),
+        gf_multiply(gf_power(156), gf_power(205)),
+        gf_multiply(gf_power(156), gf_power(34)),
+        0
+    });
+
+    int ok = equal_polynomials(expected, product);
+
+    free_gf_polynomial(a);
+    free_gf_polynomial(x);
+    free_gf_polynomial(expected);
+    return ok;
+}
+
+
 /**
  * Verifies that dividing a polynomial equal to A.(X+1) by
  * (X+1) given A as the quotient and 0 as the remainder.
@@ -239,6 +259,159 @@ static int test_divide_polynomials2() {
 }
 
 
+int test_calculate_sigma_omega() {
+    struct gf_polynomial* codewords = new_gf_polynomial(26, test_block);
+    if (codewords == NULL) {
+        return 0;
+    }
+    struct gf_polynomial* syndromes = new_gf_polynomial(10, NULL);
+    if (syndromes == NULL) {
+        free_gf_polynomial(codewords);
+        return 0;
+    }
+
+    codewords->coefficients[0] = 0;
+    if (0 == calculate_syndromes(codewords, syndromes)) {
+        free_gf_polynomial(codewords);
+        free_gf_polynomial(syndromes);
+        return 0;
+    }
+
+    struct gf_polynomial* sigma;
+    struct gf_polynomial* omega;
+
+    int ok = 1 == calculate_sigma_omega(syndromes, 10, &sigma, &omega);
+    if (!ok) {
+        free_gf_polynomial(codewords);
+        free_gf_polynomial(syndromes);
+        return 0;
+    }
+
+    struct gf_polynomial* expected_sigma = new_gf_polynomial(2, (u_int8_t[]){ gf_power(25), 1 });
+    if (expected_sigma == NULL) {
+        free_gf_polynomial(codewords);
+        free_gf_polynomial(syndromes);
+        return 0;
+    }
+
+    struct gf_polynomial* expected_omega = new_gf_polynomial(1, (u_int8_t[]){ gf_power(6) });
+    if (expected_omega == NULL) {
+        free_gf_polynomial(codewords);
+        free_gf_polynomial(syndromes);
+        free_gf_polynomial(expected_omega);
+        return 0;
+    }
+
+    ok = equal_polynomials(expected_sigma, sigma) && equal_polynomials(expected_omega, omega);
+
+    free_gf_polynomial(codewords);
+    free_gf_polynomial(syndromes);
+    free_gf_polynomial(sigma);
+    free_gf_polynomial(omega);
+    free_gf_polynomial(expected_sigma);
+    free_gf_polynomial(expected_omega);
+    return ok;
+}
+
+
+int test_find_error_locations() {
+    struct gf_polynomial* sigma = new_gf_polynomial(2, (u_int8_t[]){ gf_power(25), 1 });
+    if (sigma == NULL) {
+        return 0;
+    }
+    u_int8_t t[1];
+    int ok = find_error_locations(sigma, t) && gf_log(t[0]) == 25;
+
+    free_gf_polynomial(sigma);
+    return ok;
+}
+
+
+int test_find_error_magnitudes() {
+    struct gf_polynomial* omega = new_gf_polynomial(1, (u_int8_t[]){ gf_power(6) });
+    if (omega == NULL) {
+        return 0;
+    }
+    u_int8_t error_locations[1] = { gf_power(25) };
+    u_int8_t error_magnitudes[1];
+    find_error_magnitudes(omega, 1, error_locations, error_magnitudes);
+    free_gf_polynomial(omega);
+    return 0x40 == error_magnitudes[0];
+}
+
+
+// Test with no error in the message
+int test_error_correction() {
+    struct block b;
+    b.codewords = test_block;
+    b.n_data_codewords = 16;
+    b.n_error_correction_codewords = 10;
+
+    return 0 == error_correction(&b);
+}
+
+
+// Test with one error in the message
+int test_error_correction2() {
+    struct block b;
+    b.codewords = (u_int8_t*)malloc(26 * sizeof(u_int8_t));
+    if (b.codewords == NULL) {
+        return 0;
+    }
+    memcpy(b.codewords, test_block, 26);
+    b.n_data_codewords = 16;
+    b.n_error_correction_codewords = 10;
+
+    b.codewords[1] ^= 63;
+
+    int ok = 1 == error_correction(&b) && b.codewords[1] == test_block[1];
+    free(b.codewords);
+    return ok;
+}
+
+// Test with two errors in the message
+int test_error_correction3() {
+    struct block b;
+    b.codewords = (u_int8_t*)malloc(26 * sizeof(u_int8_t));
+    if (b.codewords == NULL) {
+        return 0;
+    }
+    memcpy(b.codewords, test_block, 26);
+    b.n_data_codewords = 16;
+    b.n_error_correction_codewords = 10;
+
+    b.codewords[1] ^= 63;
+    b.codewords[14] ^= 33;
+
+    int ok = 2 == error_correction(&b) && b.codewords[1] == test_block[1] && b.codewords[14] == test_block[14];
+    free(b.codewords);
+    return ok;
+}
+
+
+// Test with too many errors in the message
+int test_error_correction4() {
+    struct block b;
+    b.codewords = (u_int8_t*)malloc(26 * sizeof(u_int8_t));
+    if (b.codewords == NULL) {
+        return 0;
+    }
+    memcpy(b.codewords, test_block, 26);
+    b.n_data_codewords = 16;
+    b.n_error_correction_codewords = 10;
+
+    for (unsigned int i = 1 ; i < 26 ; i++) {
+        b.codewords[i] ^= i;
+    }
+
+    int res = error_correction(&b);
+    free(b.codewords);
+
+    return res == -1;
+}
+
+
+
 typedef int (*test)();
 
 int main() {
@@ -253,8 +426,16 @@ int main() {
         test_add_polynomials,
         test_add_polynomials2,
         test_multiply_polynomials,
+        test_multiply_by_monomial,
         test_divide_polynomials,
         test_divide_polynomials2,
+        test_calculate_sigma_omega,
+        test_find_error_locations,
+        test_find_error_magnitudes,
+        test_error_correction,
+        test_error_correction2,
+        test_error_correction3,
+        test_error_correction4,
         NULL
     };
     int total = 0;
