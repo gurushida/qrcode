@@ -29,7 +29,7 @@ unsigned int remaining_bits(struct bitstream* stream) {
 
 
 u_int32_t read_bits(struct bitstream* stream, unsigned int n) {
-    if (n < 1 || n > 32 || n > remaining_bits) {
+    if (n < 1 || n > 32 || n > remaining_bits(stream)) {
         return 0;
     }
     u_int32_t result = 0;
