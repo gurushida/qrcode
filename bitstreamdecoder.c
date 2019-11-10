@@ -318,7 +318,6 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
             mode = read_bits(stream, 4);
         }
 
-        printf("mode = %d\n", mode);
         switch(mode) {
             case TERMINATOR: break;
             case FNC1_FIRST:
@@ -330,8 +329,17 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                 break;
             }
             case STRUCTURED_APPEND: {
-                // TODO
-                return -2;
+                // The structured append mode is meant to indicate that
+                // a QR code is part of a series of QR codes that should be
+                // put together to reassemble the full original message.
+                // We will ignore this feature, so let's just skip the 16
+                // bits describing the symbol sequence and the parity data
+                if (remaining_bits(stream) < 16) {
+                    free_bytebuffer(buffer);
+                    return -2;
+                }
+                read_bits(stream, 16);
+                break;
             }
             case ECI: {
                 // This mode indicates that we need to read an ECI value
@@ -355,7 +363,6 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                 // to expose the number of characters to read after the mode
                 // in a way that depends on the mode/version combination
                 u_int32_t count = read_bits(stream, get_character_count_bit(mode, version));
-                printf("count %d\n", count);
                 switch(mode) {
                     case NUMERIC: {
                         int res = decode_numeric_segment(stream, count, buffer);
@@ -394,10 +401,10 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
             }
             default: {
                 // Unknown mode
+                free_bytebuffer(buffer);
                 return -2;
             }
         }
-        printf("remaining bits %d\n", remaining_bits(stream));
     } while (mode != TERMINATOR);
 
     unsigned int n = buffer->n_bytes;
