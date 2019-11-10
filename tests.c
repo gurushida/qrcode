@@ -25,6 +25,11 @@ static u_int8_t test_block[] = {
 
 static char* decoded_text = "'Twas brillig";
 
+// This array corresponds to the text "12345678" encoded with a numeric segment
+static u_int8_t numeric_example[] = {
+    // data
+    0x10, 0x20, 0x7b, 0x72, 0x27, 0x00, 0xec, 0x11, 0xec, 0x11, 0xec, 0x11ec, 0x11, 0xec, 0x11, 0xec, 0x11, 0xec
+};
 
 /**
  * Verifies that the syndromes are all 0 when there is no error.
@@ -446,13 +451,33 @@ int test_decode_bitstream() {
     u_int8_t* decoded;
     int n = decode_bitstream(s, 1, &decoded);
     free_bitstream(s);
-    if (n <= 0) {
+    if (n < 0) {
         return 0;
     }
 
     int ok = 0 == memcmp(decoded, decoded_text, n);
     free(decoded);
-    return 1;
+    return ok;
+}
+
+
+int test_decode_bitstream_numeric() {
+    struct bitstream* s = new_bitstream(16);
+    if (s == NULL) {
+        return 0;
+    }
+    memcpy(s->bytes, numeric_example, 18);
+
+    u_int8_t* decoded;
+    int n = decode_bitstream(s, 1, &decoded);
+    free_bitstream(s);
+    if (n < 0) {
+        return 0;
+    }
+
+    int ok = 0 == memcmp(decoded, "12345678", n);
+    free(decoded);
+    return ok;
 }
 
 
@@ -579,6 +604,7 @@ int main() {
         test_error_correction4,
         test_bitstream,
         test_decode_bitstream,
+        test_decode_bitstream_numeric,
         test_decode_eci_designator1,
         test_decode_eci_designator2,
         test_decode_eci_designator3,

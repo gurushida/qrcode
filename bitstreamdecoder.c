@@ -133,6 +133,76 @@ static int decode_alphanumeric_segment(struct bitstream* stream, unsigned int co
 
 
 /**
+ * Numeric characters are encoded as 10-bit triplets plus maybe a
+ * 7-bit pair or a 4-bit single value at the end.
+ * converted into a characterwith the ALPHANUMERIC_CHARS lookup table.
+ *
+ * Decodes count numeric characters from the given stream
+ * and adds the corresponding data as utf8 in the given buffer.
+ *
+ * @return 1 on success
+ *         0 on failure
+ *        -1 on memory allocation error
+ */
+static int decode_numeric_segment(struct bitstream* stream, unsigned int count, struct bytebuffer* buffer) {
+    int start = buffer->n_bytes;
+
+    while (count >= 3) {
+        if (remaining_bits(stream) < 10) {
+            return 0;
+        }
+
+        u_int32_t value = read_bits(stream, 10);
+        if (value >= 1000) {
+            return 0;
+        }
+        u_int8_t first = '0' + (value / 100);
+        u_int8_t second = '0' + ((value / 10) % 10);
+        u_int8_t third = '0' + (value % 10);
+        if (-1 == write_byte(buffer, first)
+            || -1 == write_byte(buffer, second)
+            || -1 == write_byte(buffer, third)) {
+                return -1;
+        }
+        count -= 3;
+    }
+
+    if (count == 1) {
+        // There is a single character at the end of the segment
+        if (remaining_bits(stream) < 4) {
+            return 0;
+        }
+        u_int32_t value = read_bits(stream, 4);
+        if (value >= 10) {
+            return 0;
+        }
+
+        if (-1 == write_byte(buffer, '0' + value)) {
+            return -1;
+        }
+    } else if (count == 2) {
+        // There are 2 characters at the end
+        if (remaining_bits(stream) < 7) {
+            return 0;
+        }
+        u_int32_t value = read_bits(stream, 7);
+        if (value >= 100) {
+            return 0;
+        }
+        u_int8_t first = '0' + (value / 10);
+        u_int8_t second = '0' + (value % 10);
+
+        if (-1 == write_byte(buffer, first)
+            || -1 == write_byte(buffer, second)) {
+                return -1;
+        }
+    }
+
+    return 1;
+}
+
+
+/**
  * The QR code specification says that the number of bits to be read
  * for a segment is not the same for all modes/versions so this functions
  * tells how many bits should be read for a given combination.
@@ -240,8 +310,12 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                 printf("count %d\n", count);
                 switch(mode) {
                     case NUMERIC: {
-                        // TODO
-                        return -2;
+                        int res = decode_numeric_segment(stream, count, buffer);
+                        if (res == 0 || res == -1) {
+                            free_bytebuffer(buffer);
+                            return res == -1 ? -1 : -2;
+                        }
+                        break;
                     }
                     case ALPHANUMERIC: {
                         int res = decode_alphanumeric_segment(stream, count, fnc1_mode, buffer);
@@ -274,12 +348,13 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
         printf("remaining bits %d\n", remaining_bits(stream));
     } while (mode != TERMINATOR);
 
+    unsigned int n = buffer->n_bytes;
+
     // Let's turn the buffer into a null-terminated string
     if (!write_byte(buffer, 0)) {
         free_bytebuffer(buffer);
         return -1;
     }
-    unsigned int n = buffer->n_bytes;
 
     // Let's steal the byte array from the byte buffer
     *decoded = buffer->bytes;
