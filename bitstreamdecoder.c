@@ -15,6 +15,8 @@
 #define KANJI 8
 #define FNC1_SECOND 9
 
+#define ALPHANUMERIC_CHARS "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:"
+
 
 /**
  * Decodes count bytes from the given stream and adds
@@ -42,7 +44,43 @@ static int decode_byte_segment(struct bitstream* stream, unsigned int count, Eci
 }
 
 
+void decode_percents_in_FNC1_mode(struct bytebuffer* buffer, unsigned int start) {
+    unsigned int end_pos = buffer->n_bytes;
+    unsigned int read_pos = start;
+    unsigned int write_pos = start;
+
+    while (read_pos < end_pos) {
+        u_int8_t v = buffer->bytes[read_pos++];
+        if (v != '%') {
+            buffer->bytes[write_pos++] = v;
+        } else {
+            // We need to decode a '%'
+            if (read_pos == end_pos) {
+                // '%' at the end of the buffer; let's consider it a single '%'
+                buffer->bytes[write_pos++] = 0x1D;
+            } else {
+                v = buffer->bytes[read_pos++];
+                if (v == '%') {
+                    // We have a '%%' sequence
+                    buffer->bytes[write_pos++] = '%';
+                } else {
+                    // We have '%' followed by something else;
+                    buffer->bytes[write_pos++] = 0x1D;
+                    buffer->bytes[write_pos++] = v;
+                }
+            }
+        }
+    }
+    // When we are done, the write position is the new buffer size
+    buffer->n_bytes = write_pos;
+}
+
+
 /**
+ * Alphanumeric characters are encoded as 11-bit pairs plus maybe a
+ * single 6-bit value at the end. Each value is converted into a character
+ * with the ALPHANUMERIC_CHARS lookup table.
+ *
  * Decodes count alphanumeric characters from the given stream
  * and adds the corresponding data as utf8 in the given buffer.
  *
@@ -51,8 +89,46 @@ static int decode_byte_segment(struct bitstream* stream, unsigned int count, Eci
  *        -1 on memory allocation error
  */
 static int decode_alphanumeric_segment(struct bitstream* stream, unsigned int count, int fnc1_mode, struct bytebuffer* buffer) {
+    int start = buffer->n_bytes;
 
-    return 0;
+    while (count > 1) {
+        if (remaining_bits(stream) < 11) {
+            return 0;
+        }
+
+        u_int32_t value = read_bits(stream, 11);
+        if ((value / 45) >= 45) {
+            return 0;
+        }
+        u_int8_t first = ALPHANUMERIC_CHARS[value / 45];
+        u_int8_t second = ALPHANUMERIC_CHARS[value % 45];
+        if (-1 == write_byte(buffer, first)
+            || -1 == write_byte(buffer, second)) {
+                return -1;
+        }
+        count -= 2;
+    }
+
+    if (count == 1) {
+        // There is a single character at the end of the segment
+        if (remaining_bits(stream) < 6) {
+            return 0;
+        }
+        u_int32_t value = read_bits(stream, 6);
+        if (value >= 45) {
+            return 0;
+        }
+        if (-1 == write_byte(buffer, ALPHANUMERIC_CHARS[value])) {
+            return -1;
+        }
+    }
+
+    if (fnc1_mode) {
+        // If we are in FNC1 mode, there is more to do
+        decode_percents_in_FNC1_mode(buffer, start);
+    }
+
+    return 1;
 }
 
 
@@ -129,6 +205,9 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
             case TERMINATOR: break;
             case FNC1_FIRST:
             case FNC1_SECOND: {
+                // These modes act as a flag to turn on a special behaviour
+                // when decoding alphanumeric segments. Once on, the flag
+                // cannot be turned off
                 fnc1_mode = 1;
                 break;
             }

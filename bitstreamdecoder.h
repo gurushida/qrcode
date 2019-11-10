@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "bitstream.h"
+#include "bytebuffer.h"
 
 /**
  * The data in a QR code is encoded in multiple segments that
@@ -21,5 +22,21 @@
  *        -2 on decoding error or if the given version is invalid
  */
 int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *decoded);
+
+
+/**
+ * In FNC1 mode, '%' characters in alphanumeric character sequences must be
+ * transformed as follows:
+ * - the sequence '%%' must be converted to a single '%' character
+ * - single '%' characters must be converted to the 0x1D value used as
+ *   a FNC1 separator
+ *
+ * This function does such decoding on the given buffer, from the given start position
+ * to the end of the buffer. As a consequence, the n_bytes field may become smaller.
+ *
+ * @param buffer The buffer to decode
+ * @param start The position where to start decoding
+ */
+void decode_percents_in_FNC1_mode(struct bytebuffer* buffer, unsigned int start);
 
 #endif

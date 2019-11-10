@@ -525,6 +525,34 @@ int test_decode_eci_designator3() {
 }
 
 
+int test_decode_percents_in_FNC1_mode() {
+    struct bytebuffer* b = new_bytebuffer();
+    if (b == NULL) {
+        return 0;
+    }
+    write_byte(b, '%');
+    write_byte(b, '%');
+    write_byte(b, '%');
+    write_byte(b, 'a');
+    write_byte(b, '%');
+    write_byte(b, 'b');
+    write_byte(b, 'c');
+    write_byte(b, '%');
+    write_byte(b, '%');
+    write_byte(b, 'd');
+    write_byte(b, 'e');
+    write_byte(b, '%');
+
+    uint8_t expected[] = { '%', '%', '%', 'a', 0x1D, 'b', 'c', '%', 'd', 'e', 0x1D };
+    decode_percents_in_FNC1_mode(b, 3);
+    int ok = b->n_bytes == 11 && 0 == memcmp(expected, b->bytes, 11);
+
+    free_bytebuffer(b);
+    return ok;
+}
+
+
+
 typedef int (*test)();
 
 int main() {
@@ -554,6 +582,7 @@ int main() {
         test_decode_eci_designator1,
         test_decode_eci_designator2,
         test_decode_eci_designator3,
+        test_decode_percents_in_FNC1_mode,
         NULL
     };
     int total = 0;
