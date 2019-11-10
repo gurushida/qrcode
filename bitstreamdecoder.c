@@ -3,6 +3,7 @@
 #include "bitstreamdecoder.h"
 #include "bytebuffer.h"
 #include "eci.h"
+#include "shiftjis.h"
 
 // Here are the possible mode values
 #define TERMINATOR 0
@@ -203,6 +204,53 @@ static int decode_numeric_segment(struct bitstream* stream, unsigned int count, 
 
 
 /**
+ * Kanji characters are 2-bytes Shift JIS X 0208 values that are either
+ * in the range from 0x8140 to 0x9FFC or in the range 0xE040 to 0xEBBF.
+ *
+ * Each Kanji character WXYZ is encoded as a 13-bit value as
+ * follows:
+ *
+ * 1) Subtract 0x8140 or 0xC140 to obtain a new value ABCD.
+ *    The value to subtract depend on the range the value belongs to.
+ * 2) Use (AB * 0xC0 + CD) as a 13-bit value
+ *
+ * Decodes count Kanji characters from the given stream
+ * and adds the corresponding data as utf8 in the given buffer.
+ *
+ * @return 1 on success
+ *         0 on failure
+ *        -1 on memory allocation error
+ */
+static int decode_kanji_segment(struct bitstream* stream, unsigned int count, struct bytebuffer* buffer) {
+    if (count * 13 > remaining_bits(stream)) {
+        return 0;
+    }
+    while (count > 0) {
+        // Get the raw 13-bit value
+        u_int32_t value = read_bits(stream, 13);
+        // Unpack it as a 2-byte value
+        value = ((value / 0xC0) << 8) | (value % 0xC0);
+        // Adjust the value to its original range
+        if (value < 0x1F00) {
+            value += 0x8140;
+        } else {
+            value += 0xC140;
+        }
+        count--;
+        uint32_t unicode = from_SJIS(value);
+        int res = write_unicode_as_utf8(buffer, unicode);
+        if (res == 0) {
+            return -1;
+        }
+        if (res == -1) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+
+/**
  * The QR code specification says that the number of bits to be read
  * for a segment is not the same for all modes/versions so this functions
  * tells how many bits should be read for a given combination.
@@ -334,8 +382,12 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                         break;
                     }
                     case KANJI: {
-                        // TODO
-                        return -2;
+                        int res = decode_kanji_segment(stream, count, buffer);
+                        if (res == 0 || res == -1) {
+                            free_bytebuffer(buffer);
+                            return res == -1 ? -1 : -2;
+                        }
+                        break;
                     }
                 }
                 break;
