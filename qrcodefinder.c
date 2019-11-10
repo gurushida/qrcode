@@ -170,7 +170,8 @@ static void interpolate(float x1, float y1, float x2, float y2, unsigned int dis
 /**
  * Given the positions of the 4 finder patterns' centers (3 real ones + virtual bottom right one),
  * the original image and the dimension, this function populate the given QR code structure from
- * the original binary image.
+ * the original binary image. If part of the QR code is outside the image, we assume arbitrarily that
+ * the missing modules are white.
  */
 static void populate_qr_code(struct qr_code* code, struct bit_matrix* image, int dimension,
                             struct finder_pattern bottom_left,
@@ -219,7 +220,14 @@ static void populate_qr_code(struct qr_code* code, struct bit_matrix* image, int
             float m_x, m_y;
             interpolate(p_left_x, p_left_y, p_right_x, p_right_y,
                     dimension - 7, x, &m_x, &m_y);
-            int black = is_black(image, (int)m_x, (int)m_y);
+
+            // In case we reach a position outside the image, let's
+            // default to white
+            int _mx = (int)m_x;
+            int _my = (int)m_y;
+            int outside = _mx < 0 || _mx >= image->width || _my < 0 || _my >= image->height;
+
+            int black = outside ? 0 : is_black(image, (int)m_x, (int)m_y);
             set_color(code->modules, black ? BLACK : WHITE, x + 3, y + 3);
 
             // If M is on a corner, let's update the QR code bounds
