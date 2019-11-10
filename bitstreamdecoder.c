@@ -34,10 +34,55 @@ static int decode_byte_segment(struct bitstream* stream, unsigned int count, Eci
     for (unsigned int i = 0 ; i < count ; i++) {
         u_int8_t value = read_bits(stream, 8);
 
-        // TODO: decode bytes using the ECI mode
-
-        if (!write_byte(buffer, value)) {
-            return -1;
+        if (eci_mode == UTF8) {
+            // If we have utf8, we can copy the raw bytes as is
+            if (!write_byte(buffer, value)) {
+                return -1;
+            }
+        } if (eci_mode == UnicodeBigUnmarked) {
+            // For UTF16 Big Endian, we need 2 bytes
+            if (remaining_bits(stream) < 8) {
+                return 0;
+            }
+            // If we have utf8, we can copy the raw bytes as is
+            if (!write_byte(buffer, value)) {
+                return -1;
+            }
+            value = read_bits(stream, 8);
+            if (!write_byte(buffer, value)) {
+                return -1;
+            }
+        } else {
+            // If we have a supported one byte charset, let's write
+            // the utf8 representation of the character
+            u_int32_t unicode;
+            switch(eci_mode) {
+                case ISO8859_1: unicode = from_iso8859_1(value); break;
+                case ISO8859_2: unicode = from_iso8859_2(value); break;
+                case ISO8859_3: unicode = from_iso8859_3(value); break;
+                case ISO8859_4: unicode = from_iso8859_4(value); break;
+                case ISO8859_5: unicode = from_iso8859_5(value); break;
+                case ISO8859_6: unicode = from_iso8859_6(value); break;
+                case ISO8859_7: unicode = from_iso8859_7(value); break;
+                case ISO8859_8: unicode = from_iso8859_8(value); break;
+                case ISO8859_9: unicode = from_iso8859_9(value); break;
+                case ISO8859_10: unicode = from_iso8859_10(value); break;
+                case ISO8859_11: unicode = from_iso8859_11(value); break;
+                case ISO8859_13: unicode = from_iso8859_13(value); break;
+                case ISO8859_14: unicode = from_iso8859_14(value); break;
+                case ISO8859_15: unicode = from_iso8859_15(value); break;
+                case ISO8859_16: unicode = from_iso8859_16(value); break;
+                case Cp437: unicode = from_Cp437(value); break;
+                case Cp1250: unicode = from_Cp1250(value); break;
+                case Cp1251: unicode = from_Cp1251(value); break;
+                case Cp1252: unicode = from_Cp1252(value); break;
+                case Cp1256: unicode = from_Cp1256(value); break;
+                case ASCII: unicode = from_ascii(value); break;
+                default: return 0;
+            }
+            if (!write_unicode_as_utf8(buffer, unicode)) {
+                return -1;
+            }
         }
     }
 
@@ -345,7 +390,7 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                 // This mode indicates that we need to read an ECI value
                 // representing the new charset encoding to be used from now on
                 int n = read_eci_designator(stream);
-                if (n != -1) {
+                if (n != -1 || !can_decode(n)) {
                     int new_eci_mode = get_eci_mode(n);
                     if (new_eci_mode != -1) {
                         eci_mode = new_eci_mode;

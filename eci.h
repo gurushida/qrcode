@@ -21,7 +21,7 @@ typedef enum {
     ISO8859_9,
     ISO8859_10,
     ISO8859_11,
-    ISO8859_12,
+    // Not a mistake that there is no ISO-8859-12
     ISO8859_13,
     ISO8859_14,
     ISO8859_15,
@@ -63,5 +63,38 @@ int get_eci_mode(unsigned int value);
  *        first byte we read starts with 111
  */
 int read_eci_designator(struct bitstream* stream);
+
+
+/**
+ * Given an ECI mode, returns 1 if decoding is supported, 0
+ * if not.
+ */
+int can_decode(EciMode mode);
+
+
+/**
+ * Returns the unicode value corresponding to the given byte.
+ */
+u_int32_t from_iso8859_1(u_int8_t c);
+u_int32_t from_iso8859_2(u_int8_t c);
+u_int32_t from_iso8859_3(u_int8_t c);
+u_int32_t from_iso8859_4(u_int8_t c);
+u_int32_t from_iso8859_5(u_int8_t c);
+u_int32_t from_iso8859_6(u_int8_t c);
+u_int32_t from_iso8859_7(u_int8_t c);
+u_int32_t from_iso8859_8(u_int8_t c);
+u_int32_t from_iso8859_9(u_int8_t c);
+u_int32_t from_iso8859_10(u_int8_t c);
+u_int32_t from_iso8859_11(u_int8_t c);
+u_int32_t from_iso8859_13(u_int8_t c);
+u_int32_t from_iso8859_14(u_int8_t c);
+u_int32_t from_iso8859_15(u_int8_t c);
+u_int32_t from_iso8859_16(u_int8_t c);
+u_int32_t from_Cp437(u_int8_t c);
+u_int32_t from_Cp1250(u_int8_t c);
+u_int32_t from_Cp1251(u_int8_t c);
+u_int32_t from_Cp1252(u_int8_t c);
+u_int32_t from_Cp1256(u_int8_t c);
+u_int32_t from_ascii(u_int8_t c);
 
 #endif
