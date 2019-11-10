@@ -137,7 +137,17 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                 return -2;
             }
             case ECI: {
-                // TODO
+                // This mode indicates that we need to read an ECI value
+                // representing the new charset encoding to be used from now on
+                int n = read_eci_designator(stream);
+                if (n != -1) {
+                    int new_eci_mode = get_eci_mode(n);
+                    if (new_eci_mode != -1) {
+                        eci_mode = new_eci_mode;
+                        break;
+                    }
+                }
+                free_bytebuffer(buffer);
                 return -2;
             }
             case NUMERIC:

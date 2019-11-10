@@ -37,3 +37,33 @@ int get_eci_mode(unsigned int value) {
         default: return -1;
     }
 }
+
+
+int read_eci_designator(struct bitstream* stream) {
+    int remaining = remaining_bits(stream);
+    if (remaining < 8) {
+        return -1;
+    }
+
+    u_int8_t first_byte = read_bits(stream, 8);
+    if (!(first_byte & 128)) {
+        // Just one byte
+        return first_byte;
+    }
+
+    if (!(first_byte & 64)) {
+        // Two bytes
+        if (remaining < 16) {
+            return -1;
+        }
+        u_int32_t value = ((first_byte & 63) << 8) | read_bits(stream, 8);
+        return value;
+    }
+
+    // Three bytes
+    if (remaining < 24 || (first_byte & 32)) {
+        return -1;
+    }
+    u_int32_t value = ((first_byte & 31) << 16) | read_bits(stream, 16);
+    return value;
+}

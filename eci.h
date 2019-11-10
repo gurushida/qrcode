@@ -1,6 +1,8 @@
 #ifndef _ECI_H
 #define _ECI_H
 
+#include "bitstream.h"
+
 /**
  * This enum lists all the possible ECI modes that
  * can be used to encode text in a segment inside a
@@ -43,5 +45,23 @@ typedef enum {
  * the ECI mode or -1 if no ECI mode is found.
  */
 int get_eci_mode(unsigned int value);
+
+
+/**
+ * The value representing the ECI mode can be encoded in 1, 2 or 3 bytes
+ * like this:
+ *
+ * 1 byte   0bbbbbbb
+ * 2 bytes  10bbbbbb bbbbbbbb
+ * 3 bytes  110bbbbb bbbbbbbb bbbbbbbb
+ *
+ * This function tries to read such a value from the given stream.
+ *
+ * @param stream The bitstream to read from
+ * @return n >=0 in case of success
+ *        -1 if the stream does not contain enough bits or if the
+ *        first byte we read starts with 111
+ */
+int read_eci_designator(struct bitstream* stream);
 
 #endif

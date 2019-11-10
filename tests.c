@@ -4,6 +4,7 @@
 #include <string.h>
 #include "bitstream.h"
 #include "bitstreamdecoder.h"
+#include "eci.h"
 #include "galoisfield.h"
 #include "reedsolomon.h"
 
@@ -455,6 +456,75 @@ int test_decode_bitstream() {
 }
 
 
+int test_decode_eci_designator1() {
+    struct bitstream* s = new_bitstream(1);
+    if (s == NULL) {
+        return 0;
+    }
+    s->bytes[0] = 33;
+
+    // We should decode 1 byte
+    int ok = 33 == read_eci_designator(s);
+    // and fail to read again when the stream is empty
+    ok = ok && -1 == read_eci_designator(s);
+    free_bitstream(s);
+    return ok;
+}
+
+
+int test_decode_eci_designator2() {
+    struct bitstream* s = new_bitstream(3);
+    if (s == NULL) {
+        return 0;
+    }
+    // First value
+    s->bytes[0] = 128 + 1;
+    s->bytes[1] = 1;
+
+    // Beginning of a second value
+    s->bytes[2] = 128 + 1;
+
+    // We should decode 2 bytes
+    int ok = 257 == read_eci_designator(s);
+    // and fail to read again when the stream does not have enough bits
+    ok = ok && -1 == read_eci_designator(s);
+    free_bitstream(s);
+    return ok;
+}
+
+
+int test_decode_eci_designator3() {
+    struct bitstream* s = new_bitstream(6);
+    if (s == NULL) {
+        return 0;
+    }
+    // First value
+    s->bytes[0] = 128 + 64 + 1;
+    s->bytes[1] = 0;
+    s->bytes[2] = 1;
+
+    // Invalid byte starting with 111
+    s->bytes[3] = 128 + 64 + 32;
+
+    // Beginning of a second value
+    s->bytes[4] = 128 + 64 + 1;
+    s->bytes[5] = 0;
+
+    // We should decode 3 bytes
+    int ok = 65537 == read_eci_designator(s);
+
+    // and fail because of the 111 prefix (but the wrong byte
+    // would still have been read from the stream)
+    ok = ok && -1 == read_eci_designator(s);
+
+    // We should fail to read again because the stream does not have enough bits
+    int n;
+    ok = ok && -1 == (n=read_eci_designator(s));
+    free_bitstream(s);
+    return ok;
+}
+
+
 typedef int (*test)();
 
 int main() {
@@ -481,6 +551,9 @@ int main() {
         test_error_correction4,
         test_bitstream,
         test_decode_bitstream,
+        test_decode_eci_designator1,
+        test_decode_eci_designator2,
+        test_decode_eci_designator3,
         NULL
     };
     int total = 0;
