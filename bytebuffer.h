@@ -34,4 +34,15 @@ void free_bytebuffer(struct bytebuffer* buffer);
  */
 int write_byte(struct bytebuffer* buffer, uint8_t value);
 
+
+/**
+ * Writes to the given buffer the bytes corresponding to the utf8
+ * encoding of the given unicode character.
+ *
+ * @return 1 on success
+ *         0 in case of memory allocation error
+ *        -1 if the given value is not in a the range [0 - 0x10FFFF]
+ */
+int write_unicode_as_utf8(struct bytebuffer* buffer, u_int32_t value);
+
 #endif

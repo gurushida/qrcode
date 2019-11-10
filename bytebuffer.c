@@ -37,3 +37,32 @@ int write_byte(struct bytebuffer* buffer, uint8_t value) {
     buffer->bytes[buffer->n_bytes++] = value;
     return 1;
 }
+
+
+int write_unicode_as_utf8(struct bytebuffer* buffer, u_int32_t value) {
+    if (value <= 0x7F) {
+        return write_byte(buffer, value);
+    }
+
+    if (value <= 0x7FF) {
+        u_int8_t a = (128 + 64) | (value >> 6);
+        u_int8_t b = 128 | (value & 63);
+        return write_byte(buffer, a) && write_byte(buffer, b);
+    }
+
+    if (value <= 0xFFFF) {
+        u_int8_t a = (128 + 64 + 32) | (value >> 12);
+        u_int8_t b = 128 | ((value >> 6) & 63);
+        u_int8_t c = 128 | (value & 63);
+        return write_byte(buffer, a) && write_byte(buffer, b) && write_byte(buffer, c);
+    }
+
+    if (value <= 0x10FFFF) {
+        u_int8_t a = (128 + 64 + 32 + 16) | (value >> 18);
+        u_int8_t b = 128 | ((value >> 12) & 63);
+        u_int8_t c = 128 | ((value >> 6) & 63);
+        u_int8_t d = 128 | (value & 63);
+        return write_byte(buffer, a) && write_byte(buffer, b) && write_byte(buffer, c) && write_byte(buffer, d);
+    }
+    return -1;
+}
