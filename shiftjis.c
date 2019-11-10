@@ -1430,7 +1430,7 @@ u_int32_t from_SJIS(u_int32_t value) {
     if (c2 >= sizeof(euc_to_utf8_2bytes)) {
         return 0;
     }
-    u_int16_t* p = euc_to_utf8_2bytes[c2];
+    const u_int16_t* p = euc_to_utf8_2bytes[c2];
     if (p == NULL) {
         return 0;
     }
