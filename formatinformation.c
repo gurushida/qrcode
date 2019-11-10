@@ -61,7 +61,7 @@ static int count_different_bits(u_int16_t a, u_int16_t b) {
 }
 
 
-int get_formation_information(struct bit_matrix* bm, ErrorCorrectionLevel *ec, u_int8_t *mask_pattern) {
+int get_format_information(struct bit_matrix* bm, ErrorCorrectionLevel *ec, u_int8_t *mask_pattern) {
     if (bm->width != bm->height
         || bm->width < 21
         || bm->width > 177

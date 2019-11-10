@@ -65,7 +65,7 @@ typedef enum {
  *         0 if the given bit matrix has a dimension incompatible with a QR code
  *        -1 if it was not possible to decode the format information
  */
-int get_formation_information(struct bit_matrix* bm, ErrorCorrectionLevel *ec, uint8_t *mask_pattern);
+int get_format_information(struct bit_matrix* bm, ErrorCorrectionLevel *ec, uint8_t *mask_pattern);
 
 
 #endif
