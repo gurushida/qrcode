@@ -52,6 +52,23 @@ static int decode_byte_segment(struct bitstream* stream, unsigned int count, Eci
             if (!write_byte(buffer, value)) {
                 return -1;
             }
+        } else if (eci_mode == SJIS) {
+            if (value <= 0x7F) {
+                // This is a one byte ascii value
+                if (!write_byte(buffer, value)) {
+                    return -1;
+                }
+            } else {
+                // We have a 2-byte value
+                if (remaining_bits(stream) < 8) {
+                    return -1;
+                }
+                u_int8_t value2 = read_bits(stream, 8);
+                u_int32_t unicode = from_SJIS((value << 8) | value2);
+                if (!write_unicode_as_utf8(buffer, unicode)) {
+                    return -1;
+                }
+            }
         } else {
             // If we have a supported one byte charset, let's write
             // the utf8 representation of the character
@@ -390,11 +407,15 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                 // This mode indicates that we need to read an ECI value
                 // representing the new charset encoding to be used from now on
                 int n = read_eci_designator(stream);
-                if (n != -1 || !can_decode(n)) {
+                if (n != -1) {
                     int new_eci_mode = get_eci_mode(n);
                     if (new_eci_mode != -1) {
-                        eci_mode = new_eci_mode;
-                        break;
+                        if (can_decode(new_eci_mode)) {
+                            eci_mode = new_eci_mode;
+                            break;
+                        } else {
+                            printf("Unsupported eci mode %d\n", new_eci_mode);
+                        }
                     }
                 }
                 free_bytebuffer(buffer);
