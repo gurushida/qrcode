@@ -17,7 +17,9 @@
  * @param version The QR code version (between 1 and 40)
  * @param decoded Where to store the decoded data. This will be dynamically alloced and filled
  *                with the data on success
- * @return n = strlen(*decoded) >= 0 on success
+ * @return n >= 0 on success, where n is the number of decoded bytes placed in the
+ *           decoded array. If none of the decoded byte is 0, then n is the same as
+ *           strlen(*decoded)
  *        -1 on memory allocation error
  *        -2 on decoding error or if the given version is invalid
  */

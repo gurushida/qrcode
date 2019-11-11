@@ -6,6 +6,7 @@
 #include "bitstreamdecoder.h"
 #include "eci.h"
 #include "galoisfield.h"
+#include "gb18030.h"
 #include "reedsolomon.h"
 
 
@@ -49,6 +50,17 @@ static u_int8_t decoded_kanji_example[] = {
     0x77, 0x2e, 0x62, 0x69, 0x63, 0x63, 0x61, 0x6d, 0x65, 0x72, 0x61, 0x2e, 0x63, 0x6f, 0x6d, 0x2f,
     0
 };
+
+
+static u_int8_t gb18030_example[] = {
+    0xc6, 0xd5, 0xcd, 0xa8, 0xbb, 0xb0, 0x2f, 0xc6, 0xd5, 0xcd, 0xa8, 0xd4, 0x92
+};
+
+static u_int8_t decoded_gb18030_example[] = {
+    0xe6, 0x99, 0xae, 0xe9, 0x80, 0x9a, 0xe8, 0xaf, 0x9d, 0x2f, 0xe6, 0x99, 0xae, 0xe9, 0x80, 0x9a, 0xe8, 0xa9, 0xb1,
+    0
+};
+
 
 /**
  * Verifies that the syndromes are all 0 when there is no error.
@@ -520,6 +532,26 @@ int test_decode_bitstream_kanji() {
 }
 
 
+int test_decode_bitstream_gb18030() {
+    struct bitstream* s = new_bitstream(13);
+    if (s == NULL) {
+        return 0;
+    }
+    memcpy(s->bytes, gb18030_example, 13);
+
+    struct bytebuffer* buffer = new_bytebuffer();
+    int n = decode_gb18030_segment(s, 13, buffer);
+    free_bitstream(s);
+    if (n < 0) {
+        return 0;
+    }
+
+    int ok = 0 == memcmp(buffer->bytes, decoded_gb18030_example, n);
+    free_bytebuffer(buffer);
+    return ok;
+}
+
+
 int test_decode_eci_designator1() {
     struct bitstream* s = new_bitstream(1);
     if (s == NULL) {
@@ -645,6 +677,7 @@ int main() {
         test_decode_bitstream,
         test_decode_bitstream_numeric,
         test_decode_bitstream_kanji,
+        test_decode_bitstream_gb18030,
         test_decode_eci_designator1,
         test_decode_eci_designator2,
         test_decode_eci_designator3,

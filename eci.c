@@ -758,6 +758,7 @@ int can_decode(EciMode mode) {
         case ASCII:
         case UnicodeBigUnmarked:
         case SJIS:
+        case GB18030:
         case UTF8: return 1;
         default: return 0;
     }

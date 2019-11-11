@@ -3,6 +3,7 @@
 #include "bitstreamdecoder.h"
 #include "bytebuffer.h"
 #include "eci.h"
+#include "gb18030.h"
 #include "shiftjis.h"
 
 // Here are the possible mode values
@@ -31,6 +32,11 @@ static int decode_byte_segment(struct bitstream* stream, unsigned int count, Eci
     if (8 * count > remaining_bits(stream)) {
         return 0;
     }
+
+    if (eci_mode == GB18030) {
+        return decode_gb18030_segment(stream, count, buffer);
+    }
+
     for (unsigned int i = 0 ; i < count ; i++) {
         u_int8_t value = read_bits(stream, 8);
 
@@ -208,8 +214,6 @@ static int decode_alphanumeric_segment(struct bitstream* stream, unsigned int co
  *        -1 on memory allocation error
  */
 static int decode_numeric_segment(struct bitstream* stream, unsigned int count, struct bytebuffer* buffer) {
-    int start = buffer->n_bytes;
-
     while (count >= 3) {
         if (remaining_bits(stream) < 10) {
             return 0;
