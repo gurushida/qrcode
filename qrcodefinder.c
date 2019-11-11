@@ -223,9 +223,7 @@ static void populate_qr_code(struct qr_code* code, struct bit_matrix* image, int
 
             // In case we reach a position outside the image, let's
             // default to white
-            int _mx = (int)m_x;
-            int _my = (int)m_y;
-            int outside = _mx < 0 || _mx >= image->width || _my < 0 || _my >= image->height;
+            int outside = m_x < 0 || m_x >= image->width || m_y < 0 || m_y >= image->height;
 
             int black = outside ? 0 : is_black(image, (int)m_x, (int)m_y);
             set_color(code->modules, black ? BLACK : WHITE, x + 3, y + 3);
