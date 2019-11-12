@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "big5.h"
 #include "bitstream.h"
 #include "bitstreamdecoder.h"
 #include "bytebuffer.h"
@@ -20,21 +21,17 @@
 #define ALPHANUMERIC_CHARS "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:"
 
 
-/**
- * Decodes count bytes from the given stream and adds
- * the corresponding data as utf8 in the given buffer.
- *
- * @return 1 on success
- *         0 on decoding failure
- *        -1 on memory allocation error
- */
-static int decode_byte_segment(struct bitstream* stream, unsigned int count, EciMode eci_mode, struct bytebuffer* buffer) {
+int decode_byte_segment(struct bitstream* stream, unsigned int count, EciMode eci_mode, struct bytebuffer* buffer) {
     if (8 * count > remaining_bits(stream)) {
         return 0;
     }
 
     if (eci_mode == GB18030) {
         return decode_gb18030_segment(stream, count, buffer);
+    }
+
+    if (eci_mode == Big5) {
+        return decode_big5_segment(stream, count, buffer);
     }
 
     for (unsigned int i = 0 ; i < count ; i++) {

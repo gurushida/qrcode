@@ -52,14 +52,34 @@ static u_int8_t decoded_kanji_example[] = {
 };
 
 
-static u_int8_t gb18030_example[] = {
-    0xc6, 0xd5, 0xcd, 0xa8, 0xbb, 0xb0, 0x2f, 0xc6, 0xd5, 0xcd, 0xa8, 0xd4, 0x92
+// This the utf8 version of some chinese characters, followed by versions of it
+// in various encodings
+static u_int8_t chinese_utf8[] = {
+    0xe4, 0xbb, 0xa5, 0xe6, 0x98, 0x8e, 0xe9, 0x9f, 0xb3, 0xe9, 0x9f, 0xbb, 0xe7, 0x94, 0xa8, 0xe4,
+    0xb9, 0x8b, 0xe4, 0xb8, 0x8d, 0xe6, 0x9b, 0xb4, 0xe8, 0x87, 0xb3, 0xe6, 0xb0, 0x91, 0xe5, 0xad,
+    0xa3, 0
 };
 
-static u_int8_t decoded_gb18030_example[] = {
-    0xe6, 0x99, 0xae, 0xe9, 0x80, 0x9a, 0xe8, 0xaf, 0x9d, 0x2f, 0xe6, 0x99, 0xae, 0xe9, 0x80, 0x9a, 0xe8, 0xa9, 0xb1,
-    0
+static u_int8_t chinese_gb18030[] = {
+    0xD2, 0xD4, 0xC3, 0xF7, 0xD2, 0xF4, 0xED, 0x8D, 0xD3, 0xC3, 0xD6, 0xAE, 0xB2, 0xBB, 0xB8, 0xFC,
+    0xD6, 0xC1, 0xC3, 0xF1, 0xBC, 0xBE
 };
+
+static u_int8_t chinese_big5[] = {
+    0xA5, 0x48, 0xA9, 0xFA, 0xAD, 0xB5, 0xC3, 0xFD, 0xA5, 0xCE, 0xA4, 0xA7, 0xA4, 0xA3, 0xA7, 0xF3,
+    0xA6, 0xDC, 0xA5, 0xC1, 0xA9, 0x75
+};
+
+static u_int8_t chinese_euc_kr[] = {
+    0xEC, 0xA4, 0xD9, 0xA5, 0xEB, 0xE5, 0xEA, 0xA4, 0xE9, 0xC4, 0xF1, 0xFD, 0xDC, 0xF4, 0xCC, 0xDA,
+    0xF2, 0xB8, 0xDA, 0xC5, 0xCC, 0xF9
+};
+
+static u_int8_t chinese_shift_jis[] = {
+    0x88, 0xC8, 0x96, 0xBE, 0x89, 0xB9, 0x89, 0x43, 0x97, 0x70, 0x94, 0x56, 0x95, 0x73, 0x8D, 0x58,
+    0x8E, 0x8A, 0x96, 0xAF, 0x8B, 0x47
+};
+
 
 
 /**
@@ -533,20 +553,60 @@ int test_decode_bitstream_kanji() {
 
 
 int test_decode_bitstream_gb18030() {
-    struct bitstream* s = new_bitstream(13);
+    struct bitstream* s = new_bitstream(22);
     if (s == NULL) {
         return 0;
     }
-    memcpy(s->bytes, gb18030_example, 13);
+    memcpy(s->bytes, chinese_gb18030, 22);
 
     struct bytebuffer* buffer = new_bytebuffer();
-    int n = decode_gb18030_segment(s, 13, buffer);
+    int n = decode_gb18030_segment(s, 22, buffer);
     free_bitstream(s);
     if (n < 0) {
         return 0;
     }
 
-    int ok = 0 == memcmp(buffer->bytes, decoded_gb18030_example, n);
+    int ok = strlen((const char*)chinese_utf8) == buffer->n_bytes && 0 == memcmp(buffer->bytes, chinese_utf8, buffer->n_bytes);
+    free_bytebuffer(buffer);
+    return ok;
+}
+
+
+int test_decode_bitstream_big5() {
+    struct bitstream* s = new_bitstream(22);
+    if (s == NULL) {
+        return 0;
+    }
+    memcpy(s->bytes, chinese_big5, 22);
+
+    struct bytebuffer* buffer = new_bytebuffer();
+    int n = decode_big5_segment(s, 22, buffer);
+    free_bitstream(s);
+    if (n < 0) {
+        return 0;
+    }
+
+    int ok = strlen((const char*)chinese_utf8) == buffer->n_bytes && 0 == memcmp(buffer->bytes, chinese_utf8, buffer->n_bytes);
+    free_bytebuffer(buffer);
+    return ok;
+}
+
+
+int test_decode_bitstream_chinese_shift_jis() {
+    struct bitstream* s = new_bitstream(22);
+    if (s == NULL) {
+        return 0;
+    }
+    memcpy(s->bytes, chinese_shift_jis, 22);
+
+    struct bytebuffer* buffer = new_bytebuffer();
+    int n = decode_byte_segment(s, 11, SJIS, buffer);
+    free_bitstream(s);
+    if (n < 0) {
+        return 0;
+    }
+
+    int ok = strlen((const char*)chinese_utf8) == buffer->n_bytes && 0 == memcmp(buffer->bytes, chinese_utf8, buffer->n_bytes);
     free_bytebuffer(buffer);
     return ok;
 }
@@ -678,6 +738,8 @@ int main() {
         test_decode_bitstream_numeric,
         test_decode_bitstream_kanji,
         test_decode_bitstream_gb18030,
+        test_decode_bitstream_big5,
+        test_decode_bitstream_chinese_shift_jis,
         test_decode_eci_designator1,
         test_decode_eci_designator2,
         test_decode_eci_designator3,
