@@ -19,6 +19,4 @@
  */
 int decode_big5_segment(struct bitstream* stream, unsigned int count, struct bytebuffer* buffer);
 
-void print_big5();
-
 #endif
