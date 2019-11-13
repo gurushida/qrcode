@@ -2,9 +2,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "big5.h"
 #include "bitstream.h"
 #include "bitstreamdecoder.h"
 #include "eci.h"
+#include "euc_kr.h"
 #include "galoisfield.h"
 #include "gb18030.h"
 #include "reedsolomon.h"
@@ -29,7 +31,7 @@ static char* decoded_text = "'Twas brillig";
 // This array corresponds to the text "12345678" encoded with a numeric segment
 static u_int8_t numeric_example[] = {
     // data
-    0x10, 0x20, 0x7b, 0x72, 0x27, 0x00, 0xec, 0x11, 0xec, 0x11, 0xec, 0x11ec, 0x11, 0xec, 0x11, 0xec, 0x11, 0xec
+    0x10, 0x20, 0x7b, 0x72, 0x27, 0x00, 0xec, 0x11, 0xec, 0x11, 0xec, 0x11, 0xec, 0x11, 0xec, 0x11, 0xec, 0x11, 0xec
 };
 
 static char* decoded_numeric_example = "12345678";
@@ -592,6 +594,26 @@ int test_decode_bitstream_big5() {
 }
 
 
+int test_decode_bitstream_euc_kr() {
+    struct bitstream* s = new_bitstream(22);
+    if (s == NULL) {
+        return 0;
+    }
+    memcpy(s->bytes, chinese_euc_kr, 22);
+
+    struct bytebuffer* buffer = new_bytebuffer();
+    int n = decode_euc_kr_segment(s, 22, buffer);
+    free_bitstream(s);
+    if (n < 0) {
+        return 0;
+    }
+
+    int ok = strlen((const char*)chinese_utf8) == buffer->n_bytes && 0 == memcmp(buffer->bytes, chinese_utf8, buffer->n_bytes);
+    free_bytebuffer(buffer);
+    return ok;
+}
+
+
 int test_decode_bitstream_chinese_shift_jis() {
     struct bitstream* s = new_bitstream(22);
     if (s == NULL) {
@@ -739,6 +761,7 @@ int main() {
         test_decode_bitstream_kanji,
         test_decode_bitstream_gb18030,
         test_decode_bitstream_big5,
+        test_decode_bitstream_euc_kr,
         test_decode_bitstream_chinese_shift_jis,
         test_decode_eci_designator1,
         test_decode_eci_designator2,

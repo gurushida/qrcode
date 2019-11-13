@@ -4,6 +4,7 @@
 #include "bitstreamdecoder.h"
 #include "bytebuffer.h"
 #include "eci.h"
+#include "euc_kr.h"
 #include "gb18030.h"
 #include "shiftjis.h"
 
@@ -32,6 +33,10 @@ int decode_byte_segment(struct bitstream* stream, unsigned int count, EciMode ec
 
     if (eci_mode == Big5) {
         return decode_big5_segment(stream, count, buffer);
+    }
+
+    if (eci_mode == EUC_KR) {
+        return decode_euc_kr_segment(stream, count, buffer);
     }
 
     for (unsigned int i = 0 ; i < count ; i++) {
@@ -411,12 +416,8 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                 if (n != -1) {
                     int new_eci_mode = get_eci_mode(n);
                     if (new_eci_mode != -1) {
-                        if (can_decode(new_eci_mode)) {
-                            eci_mode = new_eci_mode;
-                            break;
-                        } else {
-                            printf("Unsupported eci mode %d\n", new_eci_mode);
-                        }
+                        eci_mode = new_eci_mode;
+                        break;
                     }
                 }
                 free_bytebuffer(buffer);

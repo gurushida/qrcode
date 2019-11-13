@@ -66,13 +66,6 @@ int read_eci_designator(struct bitstream* stream);
 
 
 /**
- * Given an ECI mode, returns 1 if decoding is supported, 0
- * if not.
- */
-int can_decode(EciMode mode);
-
-
-/**
  * Returns the unicode value corresponding to the given byte.
  */
 u_int32_t from_iso8859_1(u_int8_t c);

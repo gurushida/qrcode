@@ -733,39 +733,6 @@ int read_eci_designator(struct bitstream* stream) {
 }
 
 
-int can_decode(EciMode mode) {
-    switch(mode) {
-        case ISO8859_1:
-        case ISO8859_2:
-        case ISO8859_3:
-        case ISO8859_4:
-        case ISO8859_5:
-        case ISO8859_6:
-        case ISO8859_7:
-        case ISO8859_8:
-        case ISO8859_9:
-        case ISO8859_10:
-        case ISO8859_11:
-        case ISO8859_13:
-        case ISO8859_14:
-        case ISO8859_15:
-        case ISO8859_16:
-        case Cp437:
-        case Cp1250:
-        case Cp1251:
-        case Cp1252:
-        case Cp1256:
-        case ASCII:
-        case UnicodeBigUnmarked:
-        case SJIS:
-        case GB18030:
-        case Big5:
-        case UTF8: return 1;
-        default: return 0;
-    }
-}
-
-
 /**
  * ISO-8859-1 matches exactly the first 256 unicode characters.
  */
