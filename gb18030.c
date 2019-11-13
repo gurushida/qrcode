@@ -1755,6 +1755,7 @@ static u_int32_t get_index_gb18030_range_code_point(u_int32_t pointer) {
 
 
 int decode_gb18030_segment(struct bitstream* stream, unsigned int count, struct bytebuffer* buffer) {
+    int res;
     u_int8_t first = 0;
     u_int8_t second = 0;
     u_int8_t third = 0;
@@ -1764,15 +1765,15 @@ int decode_gb18030_segment(struct bitstream* stream, unsigned int count, struct 
         
         if (third != 0) {
             if (value < 0x30 || value > 0x39) {
-                return 0;
+                return DECODING_ERROR;
             }
             uint32_t pointer = ((first - 0x81) * (10 * 126 * 10)) + ((second - 0x30) * (10 * 126)) + ((third - 0x81) * 10) + value - 0x30;
             u_int32_t codepoint = get_index_gb18030_range_code_point(pointer);
             if (codepoint == 0) {
-                return 0;
+                return DECODING_ERROR;
             }
-            if (!write_unicode_as_utf8(buffer, codepoint)) {
-                return -1;
+            if (SUCCESS != (res = write_unicode_as_utf8(buffer, codepoint))) {
+                return res;
             }
             first = second = third = 0;
             continue;
@@ -1798,30 +1799,30 @@ int decode_gb18030_segment(struct bitstream* stream, unsigned int count, struct 
                 u_int32_t pointer =  (lead - 0x81) * 190 + (value - offset);
                 u_int32_t codepoint = index_gb18030[pointer];
                 if (codepoint == 0) {
-                    return 0;
+                    return DECODING_ERROR;
                 }
-                if (!write_unicode_as_utf8(buffer, codepoint)) {
-                    return -1;
+                if (SUCCESS != (res = write_unicode_as_utf8(buffer, codepoint))) {
+                    return res;
                 }
                 continue;
             }
-            return 0;
+            return DECODING_ERROR;
         }
 
         if (value <= 0x7F) {
-            if (!write_byte(buffer, value)) {
-                return -1;
+            if (MEMORY_ERROR == write_byte(buffer, value)) {
+                return MEMORY_ERROR;
             }
         } else if (value == 0x80) {
-            if (!write_unicode_as_utf8(buffer, 0x20AC)) {
-                return -1;
+            if (SUCCESS != (res = write_unicode_as_utf8(buffer, 0x20AC))) {
+                return res;
             }
         } else if (value < 0xFF) {
             first = value;
         } else {
-            return 0;
+            return DECODING_ERROR;
         }
     }
 
-    return (first == 0 && second == 0 && third == 0);
+    return (first == 0 && second == 0 && third == 0) ? SUCCESS : DECODING_ERROR;
 }

@@ -140,7 +140,7 @@ int get_codewords(struct bit_matrix* modules,
         || modules->width != codeword_mask->height
         || (modules->width % 4) != 1
         || mask_pattern >= 8) {
-            return 0;
+            return DECODING_ERROR;
         }
 
     unsigned int size = modules->width;
@@ -161,7 +161,7 @@ int get_codewords(struct bit_matrix* modules,
     n = n / 8;
     (*codewords) = (u_int8_t*)malloc(n * sizeof(u_int8_t));
     if (*codewords == NULL) {
-        return -1;
+        return MEMORY_ERROR;
     }
 
     unsigned int x = size - 1;

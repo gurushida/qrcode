@@ -16,7 +16,7 @@ static float get_distance(float x1, float y1, float x2, float y2) {
  *
  * QR codes are designed in such a way that the dimension has
  * to be a number of the form 4x+1. If we cannot find such a value,
- * we return -1. Otherwise, we return the dimension.
+ * we return DECODING_ERROR. Otherwise, we return the dimension.
  */
 static int get_dimension(struct finder_pattern bottom_left,
                             struct finder_pattern top_left,
@@ -34,7 +34,7 @@ static int get_dimension(struct finder_pattern bottom_left,
         case 0: return dimension + 1;
         case 1: return dimension;
         case 2: return dimension - 1;
-        default: return -1;
+        default: return DECODING_ERROR;
     }
 }
 
@@ -99,8 +99,11 @@ static struct bit_matrix* create_search_area(struct bit_matrix* image,
  * If the dimension is 21 or if no pattern can be found, the position is
  * just guessed.
  *
- * Returns 1 if a guess was made or 0 if the guess is out of the bounds of the image
- * which indicates that the given finder patterns are not a good QR code candidate.
+ * Returns SUCCESS if a guess was made
+ *         DECODING_ERROR if the guess is out of the bounds of the image
+ *                        which indicates that the given finder patterns
+ *                        are not a good QR code candidate
+ *         MEMORY_ERROR in case of memory allocation error
  */
 static int find_bottom_right_finder_pattern(struct finder_pattern bottom_left,
                             struct finder_pattern top_left,
@@ -114,11 +117,11 @@ static int find_bottom_right_finder_pattern(struct finder_pattern bottom_left,
     *bottom_right_y = top_right.y + (bottom_left.y - top_left.y);
     if (*bottom_right_x < 0 || *bottom_right_y < 0
         || *bottom_right_x >= image->width || *bottom_right_y >= image->height) {
-        return 0;
+        return DECODING_ERROR;
     }
 
     if (dimension == 21) {
-        return 1;
+        return SUCCESS;
     }
 
     // Let's see if we can find an alignment pattern. Starting from
@@ -139,8 +142,15 @@ static int find_bottom_right_finder_pattern(struct finder_pattern bottom_left,
     unsigned int maxY = (unsigned int)fmin(image->height - 1, alignment_y + 3 * module_size);
 
     struct bit_matrix* search_area = create_search_area(image, minX, minY, maxX, maxY);
-    struct finder_pattern_list* candidates = find_potential_centers(search_area, 0);
+    if (search_area == NULL) {
+        return MEMORY_ERROR;
+    }
+    struct finder_pattern_list* candidates;
+    int res = find_potential_centers(search_area, 0, &candidates);
     free_bit_matrix(search_area);
+    if (res == MEMORY_ERROR) {
+        return MEMORY_ERROR;
+    }
 
     if (candidates != NULL) {
         // We don't expect to find more than one pattern in such a small search area.
@@ -151,7 +161,7 @@ static int find_bottom_right_finder_pattern(struct finder_pattern bottom_left,
         free_finder_pattern_list(candidates);
     }
 
-    return 1;
+    return SUCCESS;
 }
 
 
@@ -252,33 +262,36 @@ static void populate_qr_code(struct qr_code* code, struct bit_matrix* image, int
 
 
 
-struct qr_code* get_qr_code(struct finder_pattern bottom_left,
+int get_qr_code(struct finder_pattern bottom_left,
                             struct finder_pattern top_left,
                             struct finder_pattern top_right,
-                            struct bit_matrix* image) {
+                            struct bit_matrix* image,
+                            struct qr_code* *qr_code) {
     float module_size = (bottom_left.module_size + top_left.module_size + top_right.module_size) / 3.0f;
     int dimension = get_dimension(bottom_left, top_left, top_right, module_size);
-    if (-1 == dimension) {
-        return NULL;
+    if (DECODING_ERROR == dimension) {
+        return DECODING_ERROR;
     }
 
     float x, y;
-    if (!find_bottom_right_finder_pattern(bottom_left, top_left, top_right, image, module_size, dimension, &x, &y)) {
-        return NULL;
+    int res;
+    if (SUCCESS != (res = find_bottom_right_finder_pattern(bottom_left, top_left, top_right, image, module_size, dimension, &x, &y))) {
+        return res;
     }
 
     struct qr_code* code = (struct qr_code*)malloc(sizeof(struct qr_code));
     if (code == NULL) {
-        return NULL;
+        return MEMORY_ERROR;
     }
     code->modules = create_bit_matrix(dimension, dimension);
     if (code->modules == NULL) {
         free(code);
-        return NULL;
+        return MEMORY_ERROR;
     }
 
     populate_qr_code(code, image, dimension, bottom_left, top_left, top_right, x, y);
-    return code;
+    *qr_code = code;
+    return SUCCESS;
 }
 
 

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include "bitmatrix.h"
+#include "errors.h"
+
 
 /**
  * The error correction level defines the ratio between
@@ -61,9 +63,9 @@ typedef enum {
  * @param mask_pattern The address to store the mask pattern which is a value
  *                     between 0 and 7
  *
- * @return 1 on success
- *         0 if the given bit matrix has a dimension incompatible with a QR code
- *        -1 if it was not possible to decode the format information
+ * @return SUCCESS on success
+ *         DECODING_ERROR if the given bit matrix has a dimension incompatible with a QR code
+ *                        or if it was not possible to decode the format information
  */
 int get_format_information(struct bit_matrix* bm, ErrorCorrectionLevel *ec, uint8_t *mask_pattern);
 

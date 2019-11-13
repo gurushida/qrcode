@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "bitmatrix.h"
+#include "errors.h"
 
 
 /**
@@ -59,9 +60,9 @@
  *                  will be dynamically allocated or NULL on error
  * @return n > 0 the number of decoded codewords on success, i.e. the size
  *               size of the codeword array
- *         0 if the matrix sizes are different or not valid QR code sizes,
- *           or if the mask_pattern value is not between 0 and 7
- *        -1 on memory allocation error
+ *         DECODING_ERROR if the matrix sizes are different or not valid QR code sizes,
+ *                        or if the mask_pattern value is not between 0 and 7
+ *         MEMORY_ERROR on memory allocation error
  */
 int get_codewords(struct bit_matrix* modules,
                 struct bit_matrix* codeword_mask,

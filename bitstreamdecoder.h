@@ -5,6 +5,7 @@
 #include "bitstream.h"
 #include "bytebuffer.h"
 #include "eci.h"
+#include "errors.h"
 
 /**
  * The data in a QR code is encoded in multiple segments that
@@ -21,18 +22,19 @@
  * @return n >= 0 on success, where n is the number of decoded bytes placed in the
  *           decoded array. If none of the decoded byte is 0, then n is the same as
  *           strlen(*decoded)
- *        -1 on memory allocation error
- *        -2 on decoding error or if the given version is invalid
+ *         MEMORY_ERROR on memory allocation error
+ *         DECODING_ERROR on decoding error or if the given version is invalid
  */
 int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *decoded);
+
 
 /**
  * Decodes count bytes from the given stream and adds
  * the corresponding data as utf8 in the given buffer.
  *
- * @return 1 on success
- *         0 on decoding failure
- *        -1 on memory allocation error
+ * @return SUCCESS on success
+ *         DECODING_ERROR on decoding failure
+ *         MEMORY_ERROR on memory allocation error
  */
 int decode_byte_segment(struct bitstream* stream, unsigned int count, EciMode eci_mode, struct bytebuffer* buffer);
 

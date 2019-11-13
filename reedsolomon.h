@@ -3,6 +3,7 @@
 
 #include "bitstream.h"
 #include "blocks.h"
+#include "errors.h"
 #include "polynomial.h"
 
 
@@ -41,9 +42,10 @@
  *
  * @param b The single block to decode
  * @return On success, a value n>=0 representing the number of errors
- *         that were corrected; -1 if the block could not be decoded
- *         because there were too many errors; -2 if we failed because
- *         of a memory allocation error
+ *         that were corrected
+ *         DECODING_ERROR if the block could not be decoded
+ *                        because there were too many errors
+ *         MEMORY_ERROR in case of memory allocation error
  */
 int error_correction(struct block* b);
 
@@ -77,9 +79,9 @@ unsigned int calculate_syndromes(struct gf_polynomial* message, struct gf_polyno
  * @param n_error_correction_codewords The number of non-data codewords in the message
  * @param sigma Where to store the error locator polynomial
  * @param omega Where to store the error evalutator polynomial
- * @return 1 in case of success
- *         0 in case of internal error
- *        -1 in case of memory allocation error
+ * @return SUCCESS in case of success
+ *         DECODING_ERROR in case of internal error
+ *         MEMORY_ERROR in case of memory allocation error
  */
 int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_correction_codewords,
                             struct gf_polynomial* *sigma, struct gf_polynomial* *omega);
@@ -100,9 +102,10 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
  *              of errors
  * @param locations An array of size degree(sigma) where to put the alpha^i
  *                  values
- * @return 1 on success or 0 if the number of roots does not match not match the
- *         expected number of errors which indicates that we cannot correct
- *         the errors
+ * @return SUCCESS on success
+ *         DECODING_ERROR if the number of roots does not match not match the
+ *                        expected number of errors which indicates that we cannot
+ *                        correct the errors
  */
 int find_error_locations(struct gf_polynomial* sigma, u_int8_t* locations);
 
@@ -131,9 +134,9 @@ void find_error_magnitudes(struct gf_polynomial* omega, unsigned int n_errors,
  * @param blocks The (data+error) blocks from the QR code
  * @param bitstream On success, *bitstream will be allocated and filled with
  *                the correct data codewords
- * @return 1 on success
- *         0 if a block cannot be successfully decoded
- *        -1 in case of memory allocation error
+ * @return SUCCESS on success
+ *         DECODING_ERROR if a block cannot be successfully decoded
+ *         MEMORY_ERROR in case of memory allocation error
  */
 int get_message_bitstream(struct blocks* blocks, struct bitstream* *bitstream);
 

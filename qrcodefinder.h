@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include "bitmatrix.h"
+#include "errors.h"
 #include "finderpattern.h"
 
 
@@ -24,12 +25,15 @@ struct qr_code {
 /**
  * Given a binary image and the coordinates of 3 finder patterns,
  * this function looks if it can find a QR code.
- * Returns the QR code on success, NULL otherwise.
+ * Returns SUCCESS on success and place the QR code in *qr_code
+ *         DECODING_ERROR if no QA code can be found
+ *         MEMORY_ERROR in case of memoey allocation error
  */
-struct qr_code* get_qr_code(struct finder_pattern bottom_left,
+int get_qr_code(struct finder_pattern bottom_left,
                             struct finder_pattern top_left,
                             struct finder_pattern top_right,
-                            struct bit_matrix* image);
+                            struct bit_matrix* image,
+                            struct qr_code* *qr_code);
 
 
 /**

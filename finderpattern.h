@@ -2,6 +2,8 @@
 #define _FINDERPATTERN_H
 
 #include "bitmatrix.h"
+#include "errors.h"
+
 
 /**
  * This structure represents a possible location of a finder pattern,
@@ -47,8 +49,12 @@ struct finder_pattern_list {
  * @param search_finder_pattern If non zero, the function looks for finder patterns,
  *                              i.e. patterns with 1:1:3:1:1 ratios; if zero, it looks
  *                              for alignment patterns that have 1:1:1:1:1 ratios
+ * @param list Where to store the result
+ * @return SUCCESS on success
+ *         DECODING_ERROR if no center can be found
+ *         MEMORY_ERROR in case of memory allocation error
  */
-struct finder_pattern_list* find_potential_centers(struct bit_matrix* bm, int search_finder_pattern);
+int find_potential_centers(struct bit_matrix* bm, int search_finder_pattern, struct finder_pattern_list* *list);
 
 
 /**

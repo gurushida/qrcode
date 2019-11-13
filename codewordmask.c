@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "bitmatrix.h"
+#include "codewordmask.h"
 
 
 /**
@@ -58,16 +58,16 @@ static u_int8_t alignment_patterns[40][8] = {
 };
 
 
-struct bit_matrix* get_codeword_mask(unsigned int size) {
+int get_codeword_mask(unsigned int size, struct bit_matrix* *mask) {
     if (size < 21
         || size > 177
         || (size % 4) != 1) {
-            return NULL;
+            return DECODING_ERROR;
     }
 
     struct bit_matrix* bm = create_bit_matrix(size, size);
     if (bm == NULL) {
-        return NULL;
+        return MEMORY_ERROR;
     }
 
     // For the top left finder pattern, we include the white border
@@ -150,5 +150,6 @@ struct bit_matrix* get_codeword_mask(unsigned int size) {
         }
     }
 
-    return bm;
+    *mask = bm;
+    return SUCCESS;
 }

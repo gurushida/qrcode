@@ -1,6 +1,7 @@
 #ifndef _FINDERPATTERNGROUP_H
 #define _FINDERPATTERNGROUP_H
 
+#include "errors.h"
 #include "finderpattern.h"
 
 /**
@@ -23,8 +24,14 @@ struct finder_pattern_group_list {
  * be the corners of QA code candidates. A finder pattern
  * may appear in zero, one or multiple groups. We will let
  * the QR code decoding process eliminate the false positives.
+ *
+ * @param list The finder patterns
+ * @param groups Where to store the groups
+ * @return SUCCESS if some groups are found
+ *         DECODING_ERROR if no group is found
+ *         MEMORY_ERROR in case of memory allocation error
  */
-struct finder_pattern_group_list* find_groups(struct finder_pattern_list* list);
+int find_groups(struct finder_pattern_list* list, struct finder_pattern_group_list* *groups);
 
 
 /**

@@ -55,8 +55,11 @@ static float get_distance(struct finder_pattern* a, struct finder_pattern* b) {
 /**
  * Checks if the 3 given points can form a valid finder pattern group.
  * If so, adds the group to the given list.
+ * @return SUCCESS if a group is added
+ *         DECODING_ERROR if no group is added
+ *         MEMORY_ERROR in case of memory allocation error
  */
-static void check_points(struct finder_pattern* p1, struct finder_pattern* p2, struct finder_pattern* p3,
+static int check_points(struct finder_pattern* p1, struct finder_pattern* p2, struct finder_pattern* p3,
                         struct finder_pattern_group_list* *groups) {
     float distance_1_2 = get_distance(p1, p2);
     float distance_1_3 = get_distance(p1, p3);
@@ -148,7 +151,7 @@ static void check_points(struct finder_pattern* p1, struct finder_pattern* p2, s
     // are about the same
     float delta = fabs(distance_AB - distance_BC) / fmin(distance_AB, distance_BC);
     if (delta > 0.1f) {
-        return;
+        return DECODING_ERROR;
     }
 
     // Now, for ABC to be a valid group, the angle ABC must be about 90° so let's
@@ -156,42 +159,44 @@ static void check_points(struct finder_pattern* p1, struct finder_pattern* p2, s
     float pyth_AC = sqrtf(distance_AB * distance_AB + distance_BC * distance_BC);
     float delta_AC = fabs(distance_AC - pyth_AC) / fmin(distance_AC, pyth_AC);
     if (delta_AC > 0.1f) {
-        return;
+        return DECODING_ERROR;
     }
 
     // Ok, ABC is an isosceles rectangle triangle, but is it the right size ?
     float estimated_module_count = (distance_AB + distance_BC) / (b->module_size * 2.0f);
     if (estimated_module_count < MIN_MODULES || estimated_module_count > MAX_MODULES) {
-        return;
+        return DECODING_ERROR;
     }
 
     // We have a match
     struct finder_pattern_group_list* match = (struct finder_pattern_group_list*)malloc(sizeof(struct finder_pattern_group_list));
     if (match == NULL) {
-        return;
+        return MEMORY_ERROR;
     }
     match->bottom_left = (*a);
     match->top_left = (*b);
     match->top_right = (*c);
     match->next = (*groups);
     (*groups) = match;
+
+    return SUCCESS;
 }
 
 
-struct finder_pattern_group_list* find_groups(struct finder_pattern_list* list) {
+int find_groups(struct finder_pattern_list* list, struct finder_pattern_group_list* *groups) {
     unsigned int n = get_list_size(list);
     if (n < 3) {
         // We need at list 3 finder patterns to have a match
-        return NULL;
+        return DECODING_ERROR;
     }
 
     // Let's start by sorting the finder patterns by module sizes
     struct finder_pattern_list** sorted_array = create_sorted_array(n, list);
     if (sorted_array == NULL) {
-        return NULL;
+        return MEMORY_ERROR;
     }
 
-    struct finder_pattern_group_list* groups = NULL;
+    *groups = NULL;
 
     for (unsigned int i = 0 ; i < n - 2 ; i++) {
         struct finder_pattern* p1 = &(sorted_array[i]->pattern);
@@ -213,13 +218,16 @@ struct finder_pattern_group_list* find_groups(struct finder_pattern_list* list) 
                     break;
                 }
 
-                check_points(p1, p2, p3, &groups);
+                if (MEMORY_ERROR == check_points(p1, p2, p3, groups)) {
+                    free(sorted_array);
+                    return MEMORY_ERROR;
+                }
             }
         }
     }
 
     free(sorted_array);
-    return groups;
+    return (*groups) ? SUCCESS : DECODING_ERROR;
 }
 
 

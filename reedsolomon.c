@@ -43,12 +43,12 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
 
     struct gf_polynomial* syndromes_copy = new_gf_polynomial(syndromes->n_coefficients, syndromes->coefficients);
     if (syndromes_copy == NULL) {
-        return -1;
+        return MEMORY_ERROR;
     }
     struct gf_polynomial* monomial = get_monomial(n_error_correction_codewords, 1);
     if (monomial == NULL) {
         free_gf_polynomial(syndromes_copy);
-        return -1;
+        return MEMORY_ERROR;
     }
     set_coefficient(monomial, n_error_correction_codewords, 1);
 
@@ -58,14 +58,14 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
     if (tLast == NULL) {
         free_gf_polynomial(syndromes_copy);
         free_gf_polynomial(monomial);
-        return -1;
+        return MEMORY_ERROR;
     }
     struct gf_polynomial* t = one();
     if (t == NULL) {
         free_gf_polynomial(syndromes_copy);
         free_gf_polynomial(monomial);
         free_gf_polynomial(tLast);
-        return -1;
+        return MEMORY_ERROR;
     }
 
     // Let's make sure that rLast is the one with the highest degree
@@ -89,7 +89,7 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
             free_gf_polynomial(t);
             free_gf_polynomial(rLast);
             free_gf_polynomial(tLast);
-            return 0;
+            return DECODING_ERROR;
         }
 
         r = rLastLast;
@@ -99,7 +99,7 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
             free_gf_polynomial(t);
             free_gf_polynomial(rLast);
             free_gf_polynomial(tLast);
-            return -1;
+            return MEMORY_ERROR;
         }
 
         u_int8_t denominator_leading_term = get_coefficient(rLast, get_degree(rLast));
@@ -115,7 +115,7 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
                 free_gf_polynomial(t);
                 free_gf_polynomial(rLast);
                 free_gf_polynomial(tLast);
-                return -1;
+                return MEMORY_ERROR;
             }
             struct gf_polynomial* new_q = add_polynomials(q, scale_monomial);
             if (new_q == NULL) {
@@ -124,7 +124,7 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
                 free_gf_polynomial(rLast);
                 free_gf_polynomial(tLast);
                 free_gf_polynomial(scale_monomial);
-                return -1;
+                return MEMORY_ERROR;
             }
             free_gf_polynomial(q);
             q = new_q;
@@ -136,7 +136,7 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
                 free_gf_polynomial(rLast);
                 free_gf_polynomial(tLast);
                 free_gf_polynomial(scale_monomial);
-                return -1;
+                return MEMORY_ERROR;
             }
             struct gf_polynomial* new_r = add_polynomials(r, tmp);
             if (new_r == NULL) {
@@ -146,7 +146,7 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
                 free_gf_polynomial(tLast);
                 free_gf_polynomial(scale_monomial);
                 free_gf_polynomial(tmp);
-                return -1;
+                return MEMORY_ERROR;
             }
             r = new_r;
             free_gf_polynomial(tmp);
@@ -160,7 +160,7 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
             free_gf_polynomial(rLast);
             free_gf_polynomial(tLast);
             free_gf_polynomial(q);
-            return -1;
+            return MEMORY_ERROR;
         }
         struct gf_polynomial* new_t = add_polynomials(q_x_tLast, tLastLast);
         if (new_t == NULL) {
@@ -170,7 +170,7 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
             free_gf_polynomial(tLast);
             free_gf_polynomial(q_x_tLast);
             free_gf_polynomial(q);
-            return -1;
+            return MEMORY_ERROR;
         }
         t = new_t;
         free_gf_polynomial(q_x_tLast);
@@ -181,7 +181,7 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
             free_gf_polynomial(t);
             free_gf_polynomial(rLast);
             free_gf_polynomial(tLast);
-            return 0;
+            return DECODING_ERROR;
         }
     }
 
@@ -191,7 +191,7 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
         free_gf_polynomial(t);
         free_gf_polynomial(rLast);
         free_gf_polynomial(tLast);
-        return 0;
+        return DECODING_ERROR;
     }
     u_int8_t inverse = gf_inverse(sigma_tilde_at_0);
     multiply_by_scalar(t, inverse);
@@ -201,7 +201,7 @@ int calculate_sigma_omega(struct gf_polynomial* syndromes, unsigned int n_error_
 
     free_gf_polynomial(rLast);
     free_gf_polynomial(tLast);
-    return 1;
+    return SUCCESS;
 }
 
 
@@ -213,7 +213,7 @@ int find_error_locations(struct gf_polynomial* sigma, u_int8_t* locations) {
             locations[n++] = gf_inverse(i);
         }
     }
-    return n == n_errors;
+    return (n == n_errors) ? SUCCESS : DECODING_ERROR;
 }
 
 
@@ -240,7 +240,7 @@ int error_correction(struct block* b) {
 
     struct gf_polynomial* syndromes = new_gf_polynomial(b->n_error_correction_codewords, NULL);
     if (syndromes == NULL) {
-        return -2;
+        return MEMORY_ERROR;
     }
     if (0 == calculate_syndromes(&message, syndromes)) {
         free_gf_polynomial(syndromes);
@@ -251,13 +251,9 @@ int error_correction(struct block* b) {
     struct gf_polynomial* omega;
 
     int res = calculate_sigma_omega(syndromes, 10, &sigma, &omega);
-    if (res == -1) {
+    if (res != SUCCESS) {
         free_gf_polynomial(syndromes);
-        return -2;
-    }
-    if (res == 0) {
-        free_gf_polynomial(syndromes);
-        return -1;
+        return res;
     }
 
     unsigned int n_errors = get_degree(sigma);
@@ -267,16 +263,16 @@ int error_correction(struct block* b) {
         free_gf_polynomial(syndromes);
         free_gf_polynomial(sigma);
         free_gf_polynomial(omega);
-        return -2;
+        return MEMORY_ERROR;
     }
 
     res = find_error_locations(sigma, error_locations);
-    if (res == 0) {
+    if (res == DECODING_ERROR) {
         free_gf_polynomial(syndromes);
         free_gf_polynomial(sigma);
         free_gf_polynomial(omega);
         free(error_locations);
-        return -1;
+        return DECODING_ERROR;
     }
 
     u_int8_t* error_magnitudes = (u_int8_t*)malloc(n_errors * sizeof(u_int8_t));
@@ -285,7 +281,7 @@ int error_correction(struct block* b) {
         free_gf_polynomial(sigma);
         free_gf_polynomial(omega);
         free(error_locations);
-        return -2;
+        return MEMORY_ERROR;
     }
     find_error_magnitudes(omega, n_errors, error_locations, error_magnitudes);
 
@@ -310,19 +306,14 @@ int get_message_bitstream(struct blocks* blocks, struct bitstream* *bitstream) {
     for (unsigned int i = 0 ; i < blocks->n_blocks ; i++) {
         n += blocks->block[i].n_data_codewords;
         int res = error_correction(&(blocks->block[i]));
-        if (res == -2) {
-            // memory error
-            return -1;
-        }
-        if (res == -1) {
-            // decoding error
-            return 0;
+        if (res < 0) {
+            return res;
         }
     }
 
     (*bitstream) = new_bitstream(n);
     if ((*bitstream) == NULL) {
-        return -1;
+        return MEMORY_ERROR;
     }
 
     unsigned int pos = 0;
@@ -332,5 +323,5 @@ int get_message_bitstream(struct blocks* blocks, struct bitstream* *bitstream) {
         pos += n_bytes;
     }
 
-    return 1;
+    return SUCCESS;
 }

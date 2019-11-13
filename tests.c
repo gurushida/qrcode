@@ -341,7 +341,7 @@ int test_calculate_sigma_omega() {
     struct gf_polynomial* sigma;
     struct gf_polynomial* omega;
 
-    int ok = 1 == calculate_sigma_omega(syndromes, 10, &sigma, &omega);
+    int ok = SUCCESS == calculate_sigma_omega(syndromes, 10, &sigma, &omega);
     if (!ok) {
         free_gf_polynomial(codewords);
         free_gf_polynomial(syndromes);
@@ -381,7 +381,7 @@ int test_find_error_locations() {
         return 0;
     }
     u_int8_t t[1];
-    int ok = find_error_locations(sigma, t) && gf_log(t[0]) == 25;
+    int ok = SUCCESS == find_error_locations(sigma, t) && gf_log(t[0]) == 25;
 
     free_gf_polynomial(sigma);
     return ok;
@@ -468,7 +468,7 @@ int test_error_correction4() {
     int res = error_correction(&b);
     free(b.codewords);
 
-    return res == -1;
+    return res == DECODING_ERROR;
 }
 
 
@@ -644,7 +644,7 @@ int test_decode_eci_designator1() {
     // We should decode 1 byte
     int ok = 33 == read_eci_designator(s);
     // and fail to read again when the stream is empty
-    ok = ok && -1 == read_eci_designator(s);
+    ok = ok && DECODING_ERROR == read_eci_designator(s);
     free_bitstream(s);
     return ok;
 }
@@ -665,7 +665,7 @@ int test_decode_eci_designator2() {
     // We should decode 2 bytes
     int ok = 257 == read_eci_designator(s);
     // and fail to read again when the stream does not have enough bits
-    ok = ok && -1 == read_eci_designator(s);
+    ok = ok && DECODING_ERROR == read_eci_designator(s);
     free_bitstream(s);
     return ok;
 }
@@ -693,11 +693,11 @@ int test_decode_eci_designator3() {
 
     // and fail because of the 111 prefix (but the wrong byte
     // would still have been read from the stream)
-    ok = ok && -1 == read_eci_designator(s);
+    ok = ok && DECODING_ERROR == read_eci_designator(s);
 
     // We should fail to read again because the stream does not have enough bits
     int n;
-    ok = ok && -1 == (n=read_eci_designator(s));
+    ok = ok && DECODING_ERROR == (n = read_eci_designator(s));
     free_bitstream(s);
     return ok;
 }

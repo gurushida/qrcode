@@ -65,14 +65,14 @@ int get_version_information(struct bit_matrix* bm, u_int8_t *version_info) {
         || bm->width < 21
         || bm->width > 177
         || (bm->width % 4) != 1) {
-            return 0;
+            return DECODING_ERROR;
     }
 
     // Version * 4 + 17 = size in modules
     *version_info = (bm->width - 17) / 4;
 
     if (bm->width < 45) {
-        return 1;
+        return SUCCESS;
     }
 
     u_int32_t versionInfo1 =
@@ -142,13 +142,9 @@ int get_version_information(struct bit_matrix* bm, u_int8_t *version_info) {
     }
 
     if (bestBitDifference > 3) {
-        return -1;
+        return DECODING_ERROR;
     }
 
-    if (bestValue != (*version_info)) {
-        (*version_info) = bestValue;
-        return -2;
-    }
-
-    return 1;
+    (*version_info) = bestValue;
+    return SUCCESS;
 }

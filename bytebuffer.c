@@ -28,14 +28,14 @@ int write_byte(struct bytebuffer* buffer, uint8_t value) {
     if (buffer->n_bytes == buffer->capacity) {
         u_int8_t* tmp = (u_int8_t*)realloc(buffer->bytes, 2 * buffer->capacity);
         if (tmp == NULL) {
-            return 0;
+            return MEMORY_ERROR;
         }
         buffer->bytes = tmp;
         buffer->capacity = 2 * buffer->capacity;
     }
 
     buffer->bytes[buffer->n_bytes++] = value;
-    return 1;
+    return SUCCESS;
 }
 
 
@@ -64,5 +64,5 @@ int write_unicode_as_utf8(struct bytebuffer* buffer, u_int32_t value) {
         u_int8_t d = 128 | (value & 63);
         return write_byte(buffer, a) && write_byte(buffer, b) && write_byte(buffer, c) && write_byte(buffer, d);
     }
-    return -1;
+    return DECODING_ERROR;
 }

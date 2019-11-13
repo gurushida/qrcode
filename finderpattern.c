@@ -10,11 +10,11 @@ static int check_potential_center(struct bit_matrix* bm,  int search_finder_patt
                             unsigned int x, unsigned int y, struct finder_pattern_list* *list);
 
 
-struct finder_pattern_list* find_potential_centers(struct bit_matrix* bm, int search_finder_pattern) {
+int find_potential_centers(struct bit_matrix* bm, int search_finder_pattern, struct finder_pattern_list* *list) {
     unsigned int maxY = bm->height;
     unsigned int maxX = bm->width;
 
-    struct finder_pattern_list* list = NULL;
+    *list = NULL;
     unsigned int pixel_counts[5];
 
     for (unsigned int y = 0 ; y < maxY ; y++) {
@@ -38,7 +38,11 @@ struct finder_pattern_list* find_potential_centers(struct bit_matrix* bm, int se
                     if (current_state == 4) {
                         // We have now found a b/w/b/w/b pattern.
                         // We need to check if it looks like a finder pattern
-                        if (check_potential_center(bm, search_finder_pattern, pixel_counts, x, y, &list)) {
+                        int res = check_potential_center(bm, search_finder_pattern, pixel_counts, x, y, list);
+                        if (res == MEMORY_ERROR) {
+                            return MEMORY_ERROR;
+                        }
+                        if (res == SUCCESS) {
                             // Let's reset the counts before continuing to look for more
                             current_state = 0;
                             memset(pixel_counts, 0, 5 * sizeof(int));
@@ -61,10 +65,12 @@ struct finder_pattern_list* find_potential_centers(struct bit_matrix* bm, int se
             }
         }
         // A valid match may be ended by the right edge of the image rather than a white pixel
-        check_potential_center(bm, search_finder_pattern, pixel_counts, maxX, y, &list);
+        if (MEMORY_ERROR == check_potential_center(bm, search_finder_pattern, pixel_counts, maxX, y, list)) {
+            return MEMORY_ERROR;
+        }
     }
 
-    return list;
+    return (*list) ? SUCCESS : DECODING_ERROR;
 }
 
 
@@ -337,14 +343,15 @@ static void combine_patterns(struct finder_pattern_list* list, float centerX, fl
 /**
  * Adds the given match to the list. If the list already contains a match
  * that is close enough to the new one, the existing match is updated.
- * Return 1 on success, 0 on memory allocation error.
+ * Return SUCCESS on success
+ *        MEMORY_ERROR on memory allocation error.
  */
 static int handle_potential_center(struct finder_pattern_list* *list, float centerX, float centerY, float estimated_module_size) {
     struct finder_pattern_list* tmp = (*list);
     while (tmp != NULL) {
         if (pattern_close_enough(tmp, centerX, centerY, estimated_module_size)) {
             combine_patterns(tmp, centerX, centerY, estimated_module_size);
-            return 1;
+            return SUCCESS;
         }
 
         tmp = tmp->next;
@@ -354,18 +361,17 @@ static int handle_potential_center(struct finder_pattern_list* *list, float cent
     // Let's add it
     tmp = create_finder_pattern_list(centerX, centerY, estimated_module_size);
     if (tmp == NULL) {
-        return 0;
+        return MEMORY_ERROR;
     }
     tmp->next = (*list);
     (*list) = tmp;
-    return 1;
+    return SUCCESS;
 }
 
 
 /**
- * If the given module counts found at the given x,y position corresponds
- * indeed to a potential pattern center, returns 1 and add this match
- * to the given list. Returns 0 otherwise.
+ * Checks if the given module counts found at the given x,y position corresponds
+ * indeed to a potential pattern center.
  *
  * @param bm The binary image
  * @param search_finder_pattern Whether to look for a finder or an alignment pattern
@@ -374,12 +380,15 @@ static int handle_potential_center(struct finder_pattern_list* *list, float cent
  * @param xEnd The x coordinate of the first white pixel after the candidate sequence
  * @param y The row where the sequence was found
  * @param list The list where to add matches
+ * @return SUCCESS if the given x,y position is indeed a pattern potential center
+ *         DECODING_ERROR if not
+ *         MEMORY_ERROR in case of memory allocation error
  */
 static int check_potential_center(struct bit_matrix* bm, int search_finder_pattern, unsigned int pixel_counts[],
                             unsigned int xEnd, unsigned int y, struct finder_pattern_list* *list) {
 
     if (!proper_ratios(pixel_counts, search_finder_pattern)) {
-        return 0;
+        return DECODING_ERROR;
     }
 
     unsigned int max_pixels_per_module = pixel_counts[2] * (search_finder_pattern ? 1 : 2);
@@ -388,10 +397,10 @@ static int check_potential_center(struct bit_matrix* bm, int search_finder_patte
     float centerX = get_center(pixel_counts, xEnd);
     float centerY;
     if (!check_vertically(bm, search_finder_pattern, (unsigned int)centerX, y, max_pixels_per_module, total_pixels, &centerY)) {
-        return 0;
+        return DECODING_ERROR;
     }
     if (!check_horizontally(bm, search_finder_pattern, (unsigned int)centerY, (int)centerX, max_pixels_per_module, total_pixels, &centerX)) {
-        return 0;
+        return DECODING_ERROR;
     }
 
     float estimated_module_size = total_pixels / (search_finder_pattern ? 7.0f : 5.0f);

@@ -666,6 +666,7 @@ static u_int32_t cp1256[] = {
     0x0651, 0x00f9, 0x0652, 0x00fb, 0x00fc, 0x200e, 0x200f, 0x06d2,
 };
 
+
 int get_eci_mode(unsigned int value) {
     switch(value) {
         case 0:
@@ -698,7 +699,7 @@ int get_eci_mode(unsigned int value) {
         case 28: return Big5;
         case 29: return GB18030;
         case 30: return EUC_KR;
-        default: return -1;
+        default: return DECODING_ERROR;
     }
 }
 
@@ -706,7 +707,7 @@ int get_eci_mode(unsigned int value) {
 int read_eci_designator(struct bitstream* stream) {
     int remaining = remaining_bits(stream);
     if (remaining < 8) {
-        return -1;
+        return DECODING_ERROR;
     }
 
     u_int8_t first_byte = read_bits(stream, 8);
@@ -718,7 +719,7 @@ int read_eci_designator(struct bitstream* stream) {
     if (!(first_byte & 64)) {
         // Two bytes
         if (remaining < 16) {
-            return -1;
+            return DECODING_ERROR;
         }
         u_int32_t value = ((first_byte & 63) << 8) | read_bits(stream, 8);
         return value;
@@ -726,7 +727,7 @@ int read_eci_designator(struct bitstream* stream) {
 
     // Three bytes
     if (remaining < 24 || (first_byte & 32)) {
-        return -1;
+        return DECODING_ERROR;
     }
     u_int32_t value = ((first_byte & 31) << 16) | read_bits(stream, 16);
     return value;

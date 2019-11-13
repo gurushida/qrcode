@@ -2,6 +2,8 @@
 #define _ECI_H
 
 #include "bitstream.h"
+#include "errors.h"
+
 
 /**
  * This enum lists all the possible ECI modes that
@@ -42,7 +44,7 @@ typedef enum {
 
 /**
  * Given an integer representing an ECI mode, returns
- * the ECI mode or -1 if no ECI mode is found.
+ * the ECI mode or DECODING_ERROR if no ECI mode is found.
  */
 int get_eci_mode(unsigned int value);
 
@@ -58,9 +60,9 @@ int get_eci_mode(unsigned int value);
  * This function tries to read such a value from the given stream.
  *
  * @param stream The bitstream to read from
- * @return n >=0 in case of success
- *        -1 if the stream does not contain enough bits or if the
- *        first byte we read starts with 111
+ * @return n >= 0 in case of success
+ *        DECODING_ERROR if the stream does not contain enough bits or if the
+ *                       first byte we read starts with 111
  */
 int read_eci_designator(struct bitstream* stream);
 

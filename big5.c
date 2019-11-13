@@ -1188,6 +1188,7 @@ static u_int32_t big5_index_codepoint[]= {
 
 
 int decode_big5_segment(struct bitstream* stream, unsigned int count, struct bytebuffer* buffer) {
+    int res;
     u_int8_t big5_lead = 0;
     for (unsigned int i = 0 ; i < count ; i++) {
         u_int8_t b = read_bits(stream, 8);
@@ -1208,38 +1209,41 @@ int decode_big5_segment(struct bitstream* stream, unsigned int count, struct byt
                     case 1166: a = 0xEA; b = 0x30C; break;
                 }
                 if (a) {
-                    if (-1 == write_unicode_as_utf8(buffer, a) || -1 == write_unicode_as_utf8(buffer, b)) {
-                        return -1;
+                    if (SUCCESS != (res = write_unicode_as_utf8(buffer, a))) {
+                        return res;
+                    }
+                    if (SUCCESS != (res = write_unicode_as_utf8(buffer, b))) {
+                        return res;
                     }
                     continue;
                 }
                 int pointer_index = pointer - 942;
                 if (pointer_index < 0 || pointer_index >= 18840) {
-                    return 0;
+                    return DECODING_ERROR;
                 }
                 u_int32_t codepoint = big5_index_codepoint[pointer_index];
                 if (codepoint == 0) {
-                    return 0;
+                    return DECODING_ERROR;
                 }
-                if (-1 == write_unicode_as_utf8(buffer, codepoint)) {
-                    return -1;
+                if (SUCCESS != (res = write_unicode_as_utf8(buffer, codepoint))) {
+                    return res;
                 }
                 continue;
             }
-            return 0;
+            return DECODING_ERROR;
         }
 
         if (b <= 0x7F) {
-            if (-1 == write_unicode_as_utf8(buffer, b)) {
-                return -1;
+            if (SUCCESS != (res = write_unicode_as_utf8(buffer, b))) {
+                return res;
             }
         } else if (b >= 0x81 && b<= 0xFE) {
             big5_lead = b;
             continue;
         } else {
-            return 0;
+            return DECODING_ERROR;
         }
     }
-    return big5_lead == 0;
+    return (big5_lead == 0) ? SUCCESS : DECODING_ERROR;
 }
 

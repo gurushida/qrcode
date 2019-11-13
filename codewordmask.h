@@ -2,6 +2,7 @@
 #define _CODEWORDMASK_H
 
 #include "bitmatrix.h"
+#include "errors.h"
 
 /**
  * Given a a QR code size given in modules, this function
@@ -13,9 +14,12 @@
  * This matrix will be used to identify the modules to ignore
  * when scanning the QR code matrix for codewords.
  *
- * Returns NULL on memory error or if the given size is not
- * a legal QR code size.
+ * @param size The number of modules of one side of the QR code
+ * @param mask Where to store the result
+ * @return SUCCESS on success
+ *         DECODING_ERROR if the given size is not a legal QR code size
+ *         MEMORY_ERROR in case of memory allocation error
  */
-struct bit_matrix* get_codeword_mask(unsigned int size);
+int get_codeword_mask(unsigned int size, struct bit_matrix* *mask);
 
 #endif

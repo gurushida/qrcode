@@ -24,7 +24,7 @@
 
 int decode_byte_segment(struct bitstream* stream, unsigned int count, EciMode eci_mode, struct bytebuffer* buffer) {
     if (8 * count > remaining_bits(stream)) {
-        return 0;
+        return DECODING_ERROR;
     }
 
     if (eci_mode == GB18030) {
@@ -39,42 +39,43 @@ int decode_byte_segment(struct bitstream* stream, unsigned int count, EciMode ec
         return decode_euc_kr_segment(stream, count, buffer);
     }
 
+    int res;
     for (unsigned int i = 0 ; i < count ; i++) {
         u_int8_t value = read_bits(stream, 8);
 
         if (eci_mode == UTF8) {
             // If we have utf8, we can copy the raw bytes as is
-            if (!write_byte(buffer, value)) {
-                return -1;
+            if (MEMORY_ERROR == write_byte(buffer, value)) {
+                return MEMORY_ERROR;
             }
         } if (eci_mode == UnicodeBigUnmarked) {
             // For UTF16 Big Endian, we need 2 bytes
             if (remaining_bits(stream) < 8) {
-                return 0;
+                return DECODING_ERROR;
             }
             // If we have utf8, we can copy the raw bytes as is
-            if (!write_byte(buffer, value)) {
-                return -1;
+            if (MEMORY_ERROR == write_byte(buffer, value)) {
+                return MEMORY_ERROR;
             }
             value = read_bits(stream, 8);
-            if (!write_byte(buffer, value)) {
-                return -1;
+            if (MEMORY_ERROR == write_byte(buffer, value)) {
+                return MEMORY_ERROR;
             }
         } else if (eci_mode == SJIS) {
             if (value <= 0x7F) {
                 // This is a one byte ascii value
-                if (!write_byte(buffer, value)) {
-                    return -1;
+                if (MEMORY_ERROR == write_byte(buffer, value)) {
+                    return MEMORY_ERROR;
                 }
             } else {
                 // We have a 2-byte value
                 if (remaining_bits(stream) < 8) {
-                    return -1;
+                    return DECODING_ERROR;
                 }
                 u_int8_t value2 = read_bits(stream, 8);
                 u_int32_t unicode = from_SJIS((value << 8) | value2);
-                if (!write_unicode_as_utf8(buffer, unicode)) {
-                    return -1;
+                if (SUCCESS != (res = write_unicode_as_utf8(buffer, unicode))) {
+                    return res;
                 }
             }
         } else {
@@ -103,15 +104,15 @@ int decode_byte_segment(struct bitstream* stream, unsigned int count, EciMode ec
                 case Cp1252: unicode = from_Cp1252(value); break;
                 case Cp1256: unicode = from_Cp1256(value); break;
                 case ASCII: unicode = from_ascii(value); break;
-                default: return 0;
+                default: return DECODING_ERROR;
             }
-            if (!write_unicode_as_utf8(buffer, unicode)) {
-                return -1;
+            if (SUCCESS != (res = write_unicode_as_utf8(buffer, unicode))) {
+                return res;
             }
         }
     }
 
-    return 1;
+    return SUCCESS;
 }
 
 
@@ -155,27 +156,27 @@ void decode_percents_in_FNC1_mode(struct bytebuffer* buffer, unsigned int start)
  * Decodes count alphanumeric characters from the given stream
  * and adds the corresponding data as utf8 in the given buffer.
  *
- * @return 1 on success
- *         0 on failure
- *        -1 on memory allocation error
+ * @return SUCCESS on success
+ *         DECODING_ERROR on failure
+ *         MEMORY_ERROR on memory allocation error
  */
 static int decode_alphanumeric_segment(struct bitstream* stream, unsigned int count, int fnc1_mode, struct bytebuffer* buffer) {
     int start = buffer->n_bytes;
 
     while (count > 1) {
         if (remaining_bits(stream) < 11) {
-            return 0;
+            return DECODING_ERROR;
         }
 
         u_int32_t value = read_bits(stream, 11);
         if ((value / 45) >= 45) {
-            return 0;
+            return DECODING_ERROR;
         }
         u_int8_t first = ALPHANUMERIC_CHARS[value / 45];
         u_int8_t second = ALPHANUMERIC_CHARS[value % 45];
-        if (-1 == write_byte(buffer, first)
-            || -1 == write_byte(buffer, second)) {
-                return -1;
+        if (MEMORY_ERROR == write_byte(buffer, first)
+            || MEMORY_ERROR == write_byte(buffer, second)) {
+            return MEMORY_ERROR;
         }
         count -= 2;
     }
@@ -183,14 +184,14 @@ static int decode_alphanumeric_segment(struct bitstream* stream, unsigned int co
     if (count == 1) {
         // There is a single character at the end of the segment
         if (remaining_bits(stream) < 6) {
-            return 0;
+            return DECODING_ERROR;
         }
         u_int32_t value = read_bits(stream, 6);
         if (value >= 45) {
-            return 0;
+            return DECODING_ERROR;
         }
-        if (-1 == write_byte(buffer, ALPHANUMERIC_CHARS[value])) {
-            return -1;
+        if (MEMORY_ERROR == write_byte(buffer, ALPHANUMERIC_CHARS[value])) {
+            return MEMORY_ERROR;
         }
     }
 
@@ -199,7 +200,7 @@ static int decode_alphanumeric_segment(struct bitstream* stream, unsigned int co
         decode_percents_in_FNC1_mode(buffer, start);
     }
 
-    return 1;
+    return SUCCESS;
 }
 
 
@@ -211,27 +212,27 @@ static int decode_alphanumeric_segment(struct bitstream* stream, unsigned int co
  * Decodes count numeric characters from the given stream
  * and adds the corresponding data as utf8 in the given buffer.
  *
- * @return 1 on success
- *         0 on failure
- *        -1 on memory allocation error
+ * @return SUCCESS on success
+ *         DECODING_ERROR on failure
+ *         MEMORY_ERROR on memory allocation error
  */
 static int decode_numeric_segment(struct bitstream* stream, unsigned int count, struct bytebuffer* buffer) {
     while (count >= 3) {
         if (remaining_bits(stream) < 10) {
-            return 0;
+            return DECODING_ERROR;
         }
 
         u_int32_t value = read_bits(stream, 10);
         if (value >= 1000) {
-            return 0;
+            return DECODING_ERROR;
         }
         u_int8_t first = '0' + (value / 100);
         u_int8_t second = '0' + ((value / 10) % 10);
         u_int8_t third = '0' + (value % 10);
-        if (-1 == write_byte(buffer, first)
-            || -1 == write_byte(buffer, second)
-            || -1 == write_byte(buffer, third)) {
-                return -1;
+        if (MEMORY_ERROR == write_byte(buffer, first)
+            || MEMORY_ERROR == write_byte(buffer, second)
+            || MEMORY_ERROR == write_byte(buffer, third)) {
+            return MEMORY_ERROR;
         }
         count -= 3;
     }
@@ -239,35 +240,35 @@ static int decode_numeric_segment(struct bitstream* stream, unsigned int count, 
     if (count == 1) {
         // There is a single character at the end of the segment
         if (remaining_bits(stream) < 4) {
-            return 0;
+            return DECODING_ERROR;
         }
         u_int32_t value = read_bits(stream, 4);
         if (value >= 10) {
-            return 0;
+            return DECODING_ERROR;
         }
 
-        if (-1 == write_byte(buffer, '0' + value)) {
-            return -1;
+        if (MEMORY_ERROR == write_byte(buffer, '0' + value)) {
+            return MEMORY_ERROR;
         }
     } else if (count == 2) {
         // There are 2 characters at the end
         if (remaining_bits(stream) < 7) {
-            return 0;
+            return DECODING_ERROR;
         }
         u_int32_t value = read_bits(stream, 7);
         if (value >= 100) {
-            return 0;
+            return DECODING_ERROR;
         }
         u_int8_t first = '0' + (value / 10);
         u_int8_t second = '0' + (value % 10);
 
-        if (-1 == write_byte(buffer, first)
-            || -1 == write_byte(buffer, second)) {
-                return -1;
+        if (MEMORY_ERROR == write_byte(buffer, first)
+            || MEMORY_ERROR == write_byte(buffer, second)) {
+            return MEMORY_ERROR;
         }
     }
 
-    return 1;
+    return SUCCESS;
 }
 
 
@@ -285,13 +286,13 @@ static int decode_numeric_segment(struct bitstream* stream, unsigned int count, 
  * Decodes count Kanji characters from the given stream
  * and adds the corresponding data as utf8 in the given buffer.
  *
- * @return 1 on success
- *         0 on failure
- *        -1 on memory allocation error
+ * @return SUCCESS on success
+ *         DECODING_ERROR on failure
+ *         MEMORY_ERROR on memory allocation error
  */
 static int decode_kanji_segment(struct bitstream* stream, unsigned int count, struct bytebuffer* buffer) {
     if (count * 13 > remaining_bits(stream)) {
-        return 0;
+        return DECODING_ERROR;
     }
     while (count > 0) {
         // Get the raw 13-bit value
@@ -307,14 +308,11 @@ static int decode_kanji_segment(struct bitstream* stream, unsigned int count, st
         count--;
         uint32_t unicode = from_SJIS(value);
         int res = write_unicode_as_utf8(buffer, unicode);
-        if (res == 0) {
-            return -1;
-        }
-        if (res == -1) {
-            return 0;
+        if (res != SUCCESS) {
+            return res;
         }
     }
-    return 1;
+    return SUCCESS;
 }
 
 
@@ -368,12 +366,12 @@ static unsigned int get_character_count_bit(u_int8_t mode, unsigned int version)
 
 int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *decoded) {
     if (version < 1 || version > 40) {
-        return -2;
+        return DECODING_ERROR;
     }
     
     struct bytebuffer* buffer = new_bytebuffer();
     if (buffer == NULL) {
-        return -1;
+        return MEMORY_ERROR;
     }
 
     u_int8_t mode;
@@ -404,7 +402,7 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                 // bits describing the symbol sequence and the parity data
                 if (remaining_bits(stream) < 16) {
                     free_bytebuffer(buffer);
-                    return -2;
+                    return DECODING_ERROR;
                 }
                 read_bits(stream, 16);
                 break;
@@ -413,15 +411,15 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                 // This mode indicates that we need to read an ECI value
                 // representing the new charset encoding to be used from now on
                 int n = read_eci_designator(stream);
-                if (n != -1) {
+                if (n != DECODING_ERROR) {
                     int new_eci_mode = get_eci_mode(n);
-                    if (new_eci_mode != -1) {
+                    if (new_eci_mode != DECODING_ERROR) {
                         eci_mode = new_eci_mode;
                         break;
                     }
                 }
                 free_bytebuffer(buffer);
-                return -2;
+                return DECODING_ERROR;
             }
             case NUMERIC:
             case ALPHANUMERIC:
@@ -434,33 +432,33 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                 switch(mode) {
                     case NUMERIC: {
                         int res = decode_numeric_segment(stream, count, buffer);
-                        if (res == 0 || res == -1) {
+                        if (res != SUCCESS) {
                             free_bytebuffer(buffer);
-                            return res == -1 ? -1 : -2;
+                            return res;
                         }
                         break;
                     }
                     case ALPHANUMERIC: {
                         int res = decode_alphanumeric_segment(stream, count, fnc1_mode, buffer);
-                        if (res == 0 || res == -1) {
+                        if (res != SUCCESS) {
                             free_bytebuffer(buffer);
-                            return res == -1 ? -1 : -2;
+                            return res;
                         }
                         break;
                     }
                     case BYTE: {
                         int res = decode_byte_segment(stream, count, eci_mode, buffer);
-                        if (res == 0 || res == -1) {
+                        if (res != SUCCESS) {
                             free_bytebuffer(buffer);
-                            return res == -1 ? -1 : -2;
+                            return res;
                         }
                         break;
                     }
                     case KANJI: {
                         int res = decode_kanji_segment(stream, count, buffer);
-                        if (res == 0 || res == -1) {
+                        if (res != SUCCESS) {
                             free_bytebuffer(buffer);
-                            return res == -1 ? -1 : -2;
+                            return res;
                         }
                         break;
                     }
@@ -470,7 +468,7 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
             default: {
                 // Unknown mode
                 free_bytebuffer(buffer);
-                return -2;
+                return DECODING_ERROR;
             }
         }
     } while (mode != TERMINATOR);
@@ -478,9 +476,9 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
     unsigned int n = buffer->n_bytes;
 
     // Let's turn the buffer into a null-terminated string
-    if (!write_byte(buffer, 0)) {
+    if (MEMORY_ERROR == write_byte(buffer, 0)) {
         free_bytebuffer(buffer);
-        return -1;
+        return MEMORY_ERROR;
     }
 
     // Let's steal the byte array from the byte buffer

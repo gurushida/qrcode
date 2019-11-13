@@ -66,7 +66,7 @@ int get_format_information(struct bit_matrix* bm, ErrorCorrectionLevel *ec, u_in
         || bm->width < 21
         || bm->width > 177
         || (bm->width % 4) != 1) {
-            return 0;
+            return DECODING_ERROR;
     }
 
     uint16_t formatInfo1 =
@@ -135,7 +135,7 @@ int get_format_information(struct bit_matrix* bm, ErrorCorrectionLevel *ec, u_in
     }
 
     if (bestBitDifference > 3) {
-        return -1;
+        return DECODING_ERROR;
     }
     int bit_value = ((bestValue >> 3) & 3);
     switch (bit_value) {
@@ -146,5 +146,5 @@ int get_format_information(struct bit_matrix* bm, ErrorCorrectionLevel *ec, u_in
     }
     *mask_pattern = bestValue & 7;
 
-    return 1;
+    return SUCCESS;
 }

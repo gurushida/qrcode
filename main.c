@@ -51,8 +51,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    struct finder_pattern_list* list = find_potential_centers(bm, 1);
-    struct finder_pattern_group_list* groups = find_groups(list);
+    struct finder_pattern_list* list;
+    int res = find_potential_centers(bm, 1, &list);
+    struct finder_pattern_group_list* groups;
+    find_groups(list, &groups);
 
     struct finder_pattern_group_list* tmp = groups;
     while (tmp != NULL) {
@@ -60,8 +62,8 @@ int main(int argc, char* argv[]) {
         printf("B: %.2f %.2f  C: %.2f %.2f\n", tmp->top_left.x, tmp->top_left.y, tmp->top_right.x, tmp->top_right.y);
         printf("A: %.2f %.2f\n", tmp->bottom_left.x, tmp->bottom_left.y);
 
-        struct qr_code* code = get_qr_code(tmp->bottom_left, tmp->top_left, tmp->top_right, bm);
-        if (code == NULL) {
+        struct qr_code* code;
+        if (SUCCESS != get_qr_code(tmp->bottom_left, tmp->top_left, tmp->top_right, bm, &code)) {
             printf("Could not find code :(\n");
         } else {
             printf("Found code:\n");
@@ -77,15 +79,16 @@ int main(int argc, char* argv[]) {
 
             ErrorCorrectionLevel ec;
             uint8_t mask_pattern;
-            if (1 == get_format_information(code->modules, &ec, &mask_pattern)) {
+            if (SUCCESS == get_format_information(code->modules, &ec, &mask_pattern)) {
                 printf("Error correction level = %d, mask pattern = %d\n", ec, mask_pattern);
 
                 uint8_t version;
                 int ret = get_version_information(code->modules, &version);
-                if (1 == ret || -2 == ret) {
+                if (ret == SUCCESS) {
                     printf("version %d\n", version);
 
-                    struct bit_matrix* codeword_mask = get_codeword_mask(code->modules->width);
+                    struct bit_matrix* codeword_mask;
+                    get_codeword_mask(code->modules->width, &codeword_mask);
                     u_int8_t* codewords;
                     int n_codewords = get_codewords(code->modules, codeword_mask, mask_pattern, &codewords);
                     printf("%d codewords\n", n_codewords);
@@ -98,7 +101,7 @@ int main(int argc, char* argv[]) {
                         struct bitstream* bitstream;
                         int res = get_message_bitstream(blocks, &bitstream);
                         free_blocks(blocks);
-                        if (res == 1) {
+                        if (res == SUCCESS) {
                             printf("Decoded message of %d bytes\n", bitstream->n_bytes);
                             u_int8_t* message;
                             if (decode_bitstream(bitstream, version, &message) >= 0) {
