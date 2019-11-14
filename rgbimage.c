@@ -5,15 +5,18 @@
 #include "rgbimage.h"
 
 
-struct rgb_image* load_rgb_image(char* filename) {
+int load_rgb_image(const char* filename, struct rgb_image* *rgb_image) {
     struct rgb_image* img = (struct rgb_image*)malloc(sizeof(struct rgb_image*));
+    if (img == NULL) {
+        return MEMORY_ERROR;
+    }
     png_image image;
     memset(&image, 0, sizeof(image));
     image.version = PNG_IMAGE_VERSION;
 
     if (!png_image_begin_read_from_file(&image, filename)) {
-        fprintf(stderr, "Cannot read image from '%s'\n", filename);
-        return NULL;
+        free(img);
+        return DECODING_ERROR;
     }
 
     image.format = PNG_FORMAT_RGB;
@@ -22,9 +25,8 @@ struct rgb_image* load_rgb_image(char* filename) {
     img->height = image.height;
     img->buffer = malloc(PNG_IMAGE_SIZE(image));
     if (img->buffer == NULL) {
-        fprintf(stderr, "Memory allocation error\n");
         free(img);
-        return NULL;
+        return MEMORY_ERROR;
     }
     png_color background;
     background.red = 255;
@@ -33,11 +35,11 @@ struct rgb_image* load_rgb_image(char* filename) {
     if (!png_image_finish_read(&image, &background, img->buffer, 0, NULL)) {
         free(img->buffer);
         free(img);
-        fprintf(stderr, "Cannot read image from '%s'\n", filename);
-        return NULL;
+        return DECODING_ERROR;
     }
 
-    return img;
+    (*rgb_image) = img;
+    return SUCCESS;
 }
 
 

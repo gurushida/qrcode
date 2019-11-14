@@ -255,14 +255,14 @@ static unsigned int block_descriptions[40][4][7]= {
 };
 
 
-struct blocks* get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel ec_level) {
+int get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel ec_level, struct blocks* *block_list) {
     if (version < 1 || version > 40 || ec_level < 0 || ec_level > 3) {
-        return NULL;
+        return DECODING_ERROR;
     }
 
     struct blocks* blocks = (struct blocks*)malloc(sizeof(struct blocks));
     if (blocks == NULL) {
-        return NULL;
+        return MEMORY_ERROR;
     }
 
     blocks->n_blocks = 0;
@@ -287,7 +287,7 @@ struct blocks* get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel
     unsigned int* counters = (unsigned int*)calloc(blocks->n_blocks, sizeof(unsigned int));
     if (counters == NULL) {
         free(blocks);
-        return NULL;
+        return MEMORY_ERROR;
     }
 
     // Allocating with calloc guarantees that all the pointers in the blocks
@@ -297,7 +297,7 @@ struct blocks* get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel
     if (blocks->block == NULL) {
         free(counters);
         free(blocks);
-        return NULL;
+        return MEMORY_ERROR;
     }
 
     // Let's allocate all the codeword arrays
@@ -329,7 +329,7 @@ struct blocks* get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel
         free(blocks->block);
         free(blocks);
         free(counters);
-        return NULL;
+        return MEMORY_ERROR;
     }
 
     // We now have allocated all the space to store the codewords.
@@ -372,7 +372,8 @@ struct blocks* get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel
         current_block_index = (current_block_index + 1) % blocks->n_blocks;
     }
 
-    return blocks;
+    (*block_list) = blocks;
+    return SUCCESS;
 }
 
 

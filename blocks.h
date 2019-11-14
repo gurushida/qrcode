@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "errors.h"
 #include "formatinformation.h"
 
 #define MAX_ERROR_CORRECTION_CAPACITY 15
@@ -81,10 +82,12 @@ struct blocks {
  * @param version The QR code version between 1 and 40
  * @param ec_level The error correction level that, in combination with the version,
  *                 determines how the blocks are organized
- * @return The de-interleaved blocks on success, or NULL in case of memory allocation
- *         error or if any of the parameter has an invalid value
+ * @param blocks Where to store the result
+ * @return SUCCESS on success
+ *         DECODING_ERROR if any of the parameter has an invalid value
+ *         MEMORY_ERROR in case of memory allocation error
  */
-struct blocks* get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel ec_level);
+int get_blocks(u_int8_t* codewords, int version, ErrorCorrectionLevel ec_level, struct blocks* *blocks);
 
 
 /**

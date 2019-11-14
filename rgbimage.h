@@ -2,6 +2,7 @@
 #define _RGBIMAGE_H
 
 #include <stdint.h>
+#include "errors.h"
 
 struct rgb_image {
     unsigned int width;
@@ -11,11 +12,15 @@ struct rgb_image {
 
 
 /**
- * Loads the given png file and returns the corresponding
- * RGB image.
- * Returns NULL if the given image cannot be loaded.
+ * Loads the given png file.
+ *
+ * @param filename The path to the png file to load
+ * @param image Where to store the result
+ * @return SUCCESS on success
+ *         DECODING_ERROR if the image cannot be loaded
+ *         MEMORY_ERROR in case of memory allocation error
  */
-struct rgb_image* load_rgb_image(char* filename);
+int load_rgb_image(const char* filename, struct rgb_image* *image);
 
 
 /**

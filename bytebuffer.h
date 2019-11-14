@@ -47,4 +47,12 @@ int write_byte(struct bytebuffer* buffer, uint8_t value);
  */
 int write_unicode_as_utf8(struct bytebuffer* buffer, u_int32_t value);
 
+
+/**
+ * Returns 1 if the buffer contains a byte <= 0x1F that not '\t',
+ * '\r' or '\n'; 0 otherwise.
+ */
+int contains_binary_data(struct bytebuffer* buffer);
+
+
 #endif

@@ -66,3 +66,15 @@ int write_unicode_as_utf8(struct bytebuffer* buffer, u_int32_t value) {
     }
     return DECODING_ERROR;
 }
+
+
+int contains_binary_data(struct bytebuffer* buffer) {
+    for (unsigned int i = 0 ; i < buffer->n_bytes ; i++) {
+        u_int8_t c = buffer->bytes[i];
+        if (c <= 0x1F && c != '\t' && c != '\r' && c != '\n') {
+            return 1;
+        }
+    }
+    return 0;
+}
+
