@@ -17,7 +17,7 @@ struct rgb_image {
  * @param filename The path to the png file to load
  * @param image Where to store the result
  * @return SUCCESS on success
- *         DECODING_ERROR if the image cannot be loaded
+ *         CANNOT_LOAD_IMAGE if the image cannot be loaded
  *         MEMORY_ERROR in case of memory allocation error
  */
 int load_rgb_image(const char* filename, struct rgb_image* *image);

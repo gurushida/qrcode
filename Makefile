@@ -2,7 +2,7 @@
 SOURCES=bitmatrix.c rgbimage.c binarize.c finderpattern.c finderpatterngroup.c \
 	qrcodefinder.c formatinformation.c versioninformation.c codewordmask.c codewords.c \
 	blocks.c galoisfield.c reedsolomon.c polynomial.c bitstreamdecoder.c bitstream.c \
-	eci.c bytebuffer.c shiftjis.c gb18030.c big5.c euc_kr.c qrcode.c
+	eci.c bytebuffer.c shiftjis.c gb18030.c big5.c euc_kr.c qrcode.c logs.c
 
 qrcode: main.c libqrcode.so
 	$(CC) -lpng -lqrcode -L. main.c -Wl,-rpath,. -o qrcode -Wall -Wextra -pedantic -std=c99

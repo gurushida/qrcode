@@ -68,6 +68,12 @@ int read_eci_designator(struct bitstream* stream);
 
 
 /**
+ * Returns a string describing the given mode for debug purposes.
+ */
+const char* get_eci_name(EciMode mode);
+
+
+/**
  * Returns the unicode value corresponding to the given byte.
  */
 u_int32_t from_iso8859_1(u_int8_t c);

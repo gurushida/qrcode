@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "binarize.h"
 #include "bitstream.h"
@@ -8,11 +9,26 @@
 #include "finderpattern.h"
 #include "finderpatterngroup.h"
 #include "formatinformation.h"
+#include "logs.h"
 #include "qrcode.h"
 #include "qrcodefinder.h"
 #include "reedsolomon.h"
 #include "rgbimage.h"
 #include "versioninformation.h"
+
+
+/**
+ * Debug prints the matrix.
+ */
+static void print_matrix(struct bit_matrix* matrix) {
+    info("%d x %d:\n", matrix->width, matrix->height);
+    for (unsigned int y = 0 ; y < matrix->height ; y++) {
+        for (unsigned int x = 0 ; x < matrix->width ; x++) {
+            info("%c", is_black(matrix, x, y) ? '*' : ' ');
+        }
+        info("\n");
+    }
+}
 
 
 int find_qr_codes(const char* png, struct qr_code_match_list* *match_list) {
@@ -21,7 +37,10 @@ int find_qr_codes(const char* png, struct qr_code_match_list* *match_list) {
     // First, let's load the png image as an RGB image
     struct rgb_image* img;
     int res = load_rgb_image(png, &img);
-    if (res != SUCCESS) {
+    if (res == CANNOT_LOAD_IMAGE) {
+        return res;
+    }
+    if (res == MEMORY_ERROR) {
         return res;
     }
 
@@ -50,6 +69,9 @@ int find_qr_codes(const char* png, struct qr_code_match_list* *match_list) {
     struct finder_pattern_list* list;
     res = find_potential_centers(bm, 1, &list);
     if (res != SUCCESS) {
+        if (res == DECODING_ERROR) {
+            info("Could not find any finder pattern center\n");
+        }
         free_bit_matrix(bm);
         return res;
     }
@@ -74,6 +96,7 @@ int find_qr_codes(const char* png, struct qr_code_match_list* *match_list) {
     res = find_groups(list, &groups);
     free_finder_pattern_list(list);
     if (res != SUCCESS) {
+        info("Could not find any center group\n");
         free_bit_matrix(bm);
         return res;
     }
@@ -94,13 +117,15 @@ int find_qr_codes(const char* png, struct qr_code_match_list* *match_list) {
             }
             case SUCCESS: {
                 // We have a QR code matrix, let's try to decode it
+                info("Found a potential code ");
+                print_matrix(code->modules);
+
                 struct bytebuffer* message;
                 res = find_qr_code(code->modules, &message);
                 free_qr_code(code);
 
                 if (res == MEMORY_ERROR) {
                     memory_error = 1;
-                    break;
                 }
                 else if (res == SUCCESS) {
                     // We have a match, let's add it to the result list
@@ -152,16 +177,29 @@ int find_qr_code(struct bit_matrix* matrix, struct bytebuffer* *code) {
     // that the data modules looked random enough not to confuse QR code decoders
     // (like for instance all the data modules being of the same color)
     if (SUCCESS != (res = get_format_information(matrix, &ec, &mask_pattern))) {
+        info("Cannot find format information\n");
         return res;
     }
+
+    switch (ec) {
+        case LOW: info("Error correction level = LOW\n"); break;
+        case MEDIUM: info("Error correction level = MEDIUM\n"); break;
+        case QUARTILE: info("Error correction level = QUARTILE\n"); break;
+        case HIGH: info("Error correction level = HIGH\n"); break;
+    }
+
+    info("XOR mask pattern number = %d\n", mask_pattern);
 
     // Then let's get the version information N which indicates that the QR code
     // is a N x N module matrix
     uint8_t version;
     res = get_version_information(matrix, &version);
     if (res != SUCCESS) {
+        info("Cannot find QR version\n");
         return res;
     }
+
+    info("QR version = %d\n", version);
 
     // Let's create the mask that will indicate which modules
     // are data modules (as opposed to non-data modules like
@@ -181,6 +219,10 @@ int find_qr_code(struct bit_matrix* matrix, struct bytebuffer* *code) {
     int n_codewords = get_codewords(matrix, codeword_mask, mask_pattern, &codewords);
     free_bit_matrix(codeword_mask);
     if (n_codewords < 0) {
+        if (n_codewords == DECODING_ERROR) {
+            fprintf(stderr, "Illegal arguments passed to get_codewords()\n");
+            exit(1);
+        }
         return n_codewords;
     }
 
@@ -198,6 +240,10 @@ int find_qr_code(struct bit_matrix* matrix, struct bytebuffer* *code) {
     res = get_blocks(codewords, version, ec, &blocks);
     free(codewords);
     if (res != SUCCESS) {
+        if (res == DECODING_ERROR) {
+            fprintf(stderr, "Illegal arguments passed to get_blocks()\n");
+            exit(1);
+        }
         return res;
     }
 
@@ -209,8 +255,12 @@ int find_qr_code(struct bit_matrix* matrix, struct bytebuffer* *code) {
     // and re-assemble the bytes that were stored into the QR code
     struct bitstream* bitstream;
     res = get_message_bitstream(blocks, &bitstream);
+    int n = blocks->n_blocks;
     free_blocks(blocks);
     if (res != SUCCESS) {
+        if (res == DECODING_ERROR) {
+            info("Failed to decode bistream blocks. The data may be too corrupted.\n", n);
+        }
         return res;
     }
 
@@ -233,6 +283,9 @@ int find_qr_code(struct bit_matrix* matrix, struct bytebuffer* *code) {
     res = decode_bitstream(bitstream, version, &message);
     free_bitstream(bitstream);
     if (res < 0) {
+        if (res == DECODING_ERROR) {
+            info("Failed to decode message\n", n);
+        }
         return res;
     }
 
@@ -242,6 +295,15 @@ int find_qr_code(struct bit_matrix* matrix, struct bytebuffer* *code) {
     }
     (*code)->bytes = message;
     (*code)->n_bytes = res;
+
+
+    if (contains_text_data(*code)) {
+        info("Decoded text message:\n%s\n", (*code)->bytes);
+    } else {
+        info("Decoded binary message:\n");
+        print_bytes(INFO, (*code)->bytes, (*code)->n_bytes);
+    }
+    info("\n");
 
     return SUCCESS;
 }

@@ -18,6 +18,7 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "logs.h"
 #include "qrcode.h"
 
 
@@ -33,10 +34,19 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    set_log_level(INFO);
+
     struct qr_code_match_list* matches;
-    if (SUCCESS != find_qr_codes(argv[1], &matches)) {
+    int res = find_qr_codes(argv[1], &matches);
+    if (res == MEMORY_ERROR) {
+        error("Memory allocation error\n");
         return 1;
     }
+    if (res == CANNOT_LOAD_IMAGE) {
+        error("Cannot load image '%s'\n", argv[1]);
+        return 1;
+    }
+
     printf("<html>\n");
     printf("<head></head>\n");
     printf("<body>\n");
@@ -73,12 +83,7 @@ int main(int argc, char* argv[]) {
         printf("  <svg xmlns='http://www.w3.org/2000/svg' version='1.1' width='%dpx' height='%dpx'>\n", width, height);
         printf("    <rect width='%d' height='%d' style='stroke: red; stroke-width: 4; fill: none'/>\n", width, height);
         printf("    <title>");
-        if (contains_binary_data(tmp->message)) {
-            printf("Binary message:");
-            for (unsigned int j = 0 ; j < tmp->message->n_bytes ; j++) {
-                printf(" %02x", tmp->message->bytes[j]);
-            }
-        } else {
+        if (contains_text_data(tmp->message)) {
             printf("Text message: ");
             for (unsigned int j = 0 ; j < tmp->message->n_bytes ; j++) {
                 u_int8_t c = tmp->message->bytes[j];
@@ -90,8 +95,12 @@ int main(int argc, char* argv[]) {
                     printf("%c", c);
                 }
             }
+        } else {
+            printf("Binary message:");
+            for (unsigned int j = 0 ; j < tmp->message->n_bytes ; j++) {
+                printf(" %02x", tmp->message->bytes[j]);
+            }
         }
-        printf("\n");
         printf("</title>\n");
         printf("  </svg>\n");
         printf("</div>\n");

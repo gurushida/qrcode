@@ -12,5 +12,7 @@
 // because of a memory allocation error
 #define MEMORY_ERROR -3
 
+// When the image path cannot be loaded
+#define CANNOT_LOAD_IMAGE -4
 
 #endif

@@ -167,7 +167,6 @@ static void calculate_threshold_for_blocks(u_int8_t* luminances,
 struct bit_matrix* binarize(struct rgb_image* img) {
     u_int8_t* luminances = calculate_luminances(img);
     if (luminances == NULL) {
-        fprintf(stderr, "Memory allocation error\n");
         return NULL;
     }
 
@@ -182,7 +181,6 @@ struct bit_matrix* binarize(struct rgb_image* img) {
 
     u_int8_t* black_points = calculate_black_points(luminances, subWidth, subHeight, img->width, img->height);
     if (black_points == NULL) {
-        fprintf(stderr, "Memory allocation error\n");
         free(luminances);
         return NULL;
     }

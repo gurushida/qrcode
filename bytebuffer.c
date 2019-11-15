@@ -68,13 +68,19 @@ int write_unicode_as_utf8(struct bytebuffer* buffer, u_int32_t value) {
 }
 
 
-int contains_binary_data(struct bytebuffer* buffer) {
-    for (unsigned int i = 0 ; i < buffer->n_bytes ; i++) {
+int contains_text_data(struct bytebuffer* buffer) {
+    // The buffer may be padded at the end with multiple \0
+    int len = buffer->n_bytes - 1;
+    while (len >= 0 && buffer->bytes[len] == '\0') {
+        len--;
+    }
+
+    for (int i = 0 ; i < len ; i++) {
         u_int8_t c = buffer->bytes[i];
         if (c <= 0x1F && c != '\t' && c != '\r' && c != '\n') {
-            return 1;
+            return 0;
         }
     }
-    return 0;
+    return 1;
 }
 

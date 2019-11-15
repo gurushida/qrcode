@@ -2,6 +2,7 @@
 #define _POLYNOMIAL_H
 
 #include <stdint.h>
+#include "logs.h"
 
 /**
  * This structure represents a polynomial
@@ -106,7 +107,7 @@ void free_gf_polynomial(struct gf_polynomial* p);
 /**
  * A function to print the given polynomial for debug purposes.
  */
-void poly_print(char* name, struct gf_polynomial* p);
+void poly_print(LogLevel level, char* name, struct gf_polynomial* p);
 
 
 /**

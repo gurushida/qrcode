@@ -704,6 +704,40 @@ int get_eci_mode(unsigned int value) {
 }
 
 
+const char* get_eci_name(EciMode mode) {
+    switch (mode) {
+        case Cp437: return "CP437";
+        case ISO8859_1: return "ISO-8859-1";
+        case ISO8859_2: return "ISO-8859-2";
+        case ISO8859_3: return "ISO-8859-3";
+        case ISO8859_4: return "ISO-8859-4";
+        case ISO8859_5: return "ISO-8859-5";
+        case ISO8859_6: return "ISO-8859-6";
+        case ISO8859_7: return "ISO-8859-7";
+        case ISO8859_8: return "ISO-8859-8";
+        case ISO8859_9: return "ISO-8859-9";
+        case ISO8859_10: return "ISO-8859-10";
+        case ISO8859_11: return "ISO-8859-11";
+        case ISO8859_13: return "ISO-8859-13";
+        case ISO8859_14: return "ISO-8859-14";
+        case ISO8859_15: return "ISO-8859-15";
+        case ISO8859_16: return "ISO-8859-16";
+        case SJIS: return "Shift JIS";
+        case Cp1250: return "CP1250";
+        case Cp1251: return "CP1251";
+        case Cp1252: return "CP1252";
+        case Cp1256: return "CP1256";
+        case UnicodeBigUnmarked: return "UTF-16 BE";
+        case UTF8: return "UTF-8";
+        case ASCII: return "ASCII";
+        case Big5: return "Big5";
+        case GB18030: return "GB18030";
+        case EUC_KR: return "EUC-KR";
+        default: return "(unknown ECI mode)";
+    }
+}
+
+
 int read_eci_designator(struct bitstream* stream) {
     int remaining = remaining_bits(stream);
     if (remaining < 8) {

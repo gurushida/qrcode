@@ -198,10 +198,10 @@ int divide_polynomials(struct gf_polynomial* a, struct gf_polynomial* b,
 }
 
 
-void poly_print(char* name, struct gf_polynomial* p) {
-    printf("%s (d=%d):", name, get_degree(p));
+void poly_print(LogLevel level, char* name, struct gf_polynomial* p) {
+    print_log(level, "%s (d=%d):", name, get_degree(p));
     if (is_zero_polynomial(p)) {
-        printf("0\n");
+        print_log(level, "0\n");
         return;
     }
     int first = 1;
@@ -211,24 +211,24 @@ void poly_print(char* name, struct gf_polynomial* p) {
             if (first) {
                 first = 0;
             } else {
-                printf(" +");
+                print_log(level, " +");
             }
             if (v != 1) {
-                printf(" a^%d", gf_log(v));
+                print_log(level, " a^%d", gf_log(v));
                 if (i > 0) {
-                    printf(".");
+                    print_log(level, ".");
                 }
             } else if (i == 0) {
-                printf(" 1");
+                print_log(level, " 1");
             }
             if (i == 1) {
-                printf("X");
+                print_log(level, "X");
             } else if (i > 1) {
-                printf("X^%d", i);
+                print_log(level, "X^%d", i);
             }
         }
     }
-    printf("\n");
+    print_log(level, "\n");
 }
 
 

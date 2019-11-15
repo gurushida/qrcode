@@ -16,7 +16,7 @@ int load_rgb_image(const char* filename, struct rgb_image* *rgb_image) {
 
     if (!png_image_begin_read_from_file(&image, filename)) {
         free(img);
-        return DECODING_ERROR;
+        return CANNOT_LOAD_IMAGE;
     }
 
     image.format = PNG_FORMAT_RGB;
@@ -35,7 +35,7 @@ int load_rgb_image(const char* filename, struct rgb_image* *rgb_image) {
     if (!png_image_finish_read(&image, &background, img->buffer, 0, NULL)) {
         free(img->buffer);
         free(img);
-        return DECODING_ERROR;
+        return CANNOT_LOAD_IMAGE;
     }
 
     (*rgb_image) = img;

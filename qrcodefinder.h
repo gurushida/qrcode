@@ -26,7 +26,7 @@ struct qr_code {
  * Given a binary image and the coordinates of 3 finder patterns,
  * this function looks if it can find a QR code.
  * Returns SUCCESS on success and place the QR code in *qr_code
- *         DECODING_ERROR if no QA code can be found
+ *         DECODING_ERROR if no QR code can be found
  *         MEMORY_ERROR in case of memoey allocation error
  */
 int get_qr_code(struct finder_pattern bottom_left,

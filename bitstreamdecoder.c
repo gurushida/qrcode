@@ -6,6 +6,7 @@
 #include "eci.h"
 #include "euc_kr.h"
 #include "gb18030.h"
+#include "logs.h"
 #include "shiftjis.h"
 
 // Here are the possible mode values
@@ -374,6 +375,7 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
         return MEMORY_ERROR;
     }
 
+    gory("\nDecoding bytes...\n");
     u_int8_t mode;
     int fnc1_mode = 0;
     EciMode eci_mode = ISO8859_1;
@@ -431,6 +433,7 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                 u_int32_t count = read_bits(stream, get_character_count_bit(mode, version));
                 switch(mode) {
                     case NUMERIC: {
+                        gory("Decoding numeric segment representing %d digits\n", count);
                         int res = decode_numeric_segment(stream, count, buffer);
                         if (res != SUCCESS) {
                             free_bytebuffer(buffer);
@@ -439,6 +442,7 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                         break;
                     }
                     case ALPHANUMERIC: {
+                        gory("Decoding alphanumeric segment representing %d characters\n", count);
                         int res = decode_alphanumeric_segment(stream, count, fnc1_mode, buffer);
                         if (res != SUCCESS) {
                             free_bytebuffer(buffer);
@@ -447,6 +451,7 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                         break;
                     }
                     case BYTE: {
+                        gory("Decoding binary segment of %d bytes with ECI encoding %s\n", count, get_eci_name(eci_mode));
                         int res = decode_byte_segment(stream, count, eci_mode, buffer);
                         if (res != SUCCESS) {
                             free_bytebuffer(buffer);
@@ -455,6 +460,7 @@ int decode_bitstream(struct bitstream* stream, unsigned int version, u_int8_t* *
                         break;
                     }
                     case KANJI: {
+                        gory("Decoding Kanji segment representing %d characters\n", count);
                         int res = decode_kanji_segment(stream, count, buffer);
                         if (res != SUCCESS) {
                             free_bytebuffer(buffer);

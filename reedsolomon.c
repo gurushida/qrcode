@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "galoisfield.h"
+#include "logs.h"
 #include "polynomial.h"
 #include "reedsolomon.h"
 
@@ -238,6 +239,12 @@ int error_correction(struct block* b) {
     message.coefficients = b->codewords;
     message.n_coefficients = b->n_data_codewords + b->n_error_correction_codewords;
 
+    gory("%d data codewords:\n", b->n_data_codewords);
+    print_bytes(GORY, b->codewords, b->n_data_codewords);
+    gory("\n%d error detection/correction codewords:\n", b->n_error_correction_codewords);
+    print_bytes(GORY, b->codewords + b->n_data_codewords, b->n_error_correction_codewords);
+
+
     struct gf_polynomial* syndromes = new_gf_polynomial(b->n_error_correction_codewords, NULL);
     if (syndromes == NULL) {
         return MEMORY_ERROR;
@@ -246,17 +253,23 @@ int error_correction(struct block* b) {
         free_gf_polynomial(syndromes);
         return 0;
     }
+    poly_print(GORY, "\nSyndromes", syndromes);
 
     struct gf_polynomial* sigma;
     struct gf_polynomial* omega;
 
     int res = calculate_sigma_omega(syndromes, 10, &sigma, &omega);
     if (res != SUCCESS) {
+        gory("Cannot calculate sigma and omega polynomials\n");
         free_gf_polynomial(syndromes);
         return res;
     }
 
+    poly_print(GORY, "\nsigma", sigma);
+    poly_print(GORY, "\nomega", omega);
+
     unsigned int n_errors = get_degree(sigma);
+    gory("\n%d error%s detected\n", n_errors, (n_errors > 1) ? "s" : "");
 
     u_int8_t* error_locations = (u_int8_t*)malloc(n_errors * sizeof(u_int8_t));
     if (error_locations == NULL) {
@@ -268,12 +281,20 @@ int error_correction(struct block* b) {
 
     res = find_error_locations(sigma, error_locations);
     if (res == DECODING_ERROR) {
+        gory("Cannot find error locations\n");
         free_gf_polynomial(syndromes);
         free_gf_polynomial(sigma);
         free_gf_polynomial(omega);
         free(error_locations);
         return DECODING_ERROR;
     }
+
+    gory("\nError are at bytes:");
+    int total = b->n_data_codewords + b->n_error_correction_codewords;
+    for (unsigned int i = 0 ; i < n_errors ; i++) {
+        gory(" %d", total - 1 - gf_log(error_locations[i]));
+    }
+    gory("\n");
 
     u_int8_t* error_magnitudes = (u_int8_t*)malloc(n_errors * sizeof(u_int8_t));
     if (error_magnitudes == NULL) {
@@ -288,7 +309,9 @@ int error_correction(struct block* b) {
     // Finally, let's apply the corrections
     for (unsigned int i = 0 ; i < n_errors ; i++) {
         unsigned int pos = message.n_coefficients - 1 - gf_log(error_locations[i]);
+        u_int8_t bad = b->codewords[pos];
         b->codewords[pos] = gf_add_or_subtract(b->codewords[pos], error_magnitudes[i]);
+        gory("Correcting codeword #%d from %02x to %02x\n", pos, bad, b->codewords[pos]);
     }
 
     free_gf_polynomial(syndromes);
@@ -297,6 +320,9 @@ int error_correction(struct block* b) {
     free(error_locations);
     free(error_magnitudes);
 
+    gory("\nByte sequence after error correction:\n");
+    print_bytes(GORY, b->codewords, b->n_data_codewords);
+    gory("\n");
     return n_errors;
 }
 
@@ -304,10 +330,16 @@ int error_correction(struct block* b) {
 int get_message_bitstream(struct blocks* blocks, struct bitstream* *bitstream) {
     unsigned int n = 0;
     for (unsigned int i = 0 ; i < blocks->n_blocks ; i++) {
+        gory("\nApplying error detection/correction to block %d/%d...\n", (i + 1), blocks->n_blocks);
         n += blocks->block[i].n_data_codewords;
         int res = error_correction(&(blocks->block[i]));
         if (res < 0) {
             return res;
+        }
+        if (res > 0) {
+            info("Fixed %d errors in block %d/%d\n", res, (i + 1), blocks->n_blocks);
+        } else {
+            info("No errors in block %d/%d\n", (i + 1), blocks->n_blocks);
         }
     }
 
@@ -323,5 +355,7 @@ int get_message_bitstream(struct blocks* blocks, struct bitstream* *bitstream) {
         pos += n_bytes;
     }
 
+    gory("\nAll blocks successfully parsed into %d bytes:\n", (*bitstream)->n_bytes);
+    print_bytes(GORY, (*bitstream)->bytes, (*bitstream)->n_bytes);
     return SUCCESS;
 }

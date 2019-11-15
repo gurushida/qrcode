@@ -3,6 +3,8 @@
 
 #include "bitmatrix.h"
 #include "bytebuffer.h"
+#include "logs.h"
+
 
 /**
  * This structure represents a list of matches in an image.
@@ -38,6 +40,7 @@ struct qr_code_match_list {
  * @return SUCCESS if at least one QR code is found
  *         DECODING_ERROR if no QR code is found in the image
  *         MEMORY_ERROR in case of memory allocation error
+ *         CANNOT_LOAD_IMAGE if the image cannot be loaded
  */
 int find_qr_codes(const char* png, struct qr_code_match_list* *list);
 
