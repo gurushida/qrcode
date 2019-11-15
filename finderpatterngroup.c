@@ -10,7 +10,9 @@
 #define MIN_MODULES 13
 #define MAX_MODULES 185
 
-#define MAX_MODULE_SIZE_DIFF 0.5f
+// It does not make sense to group finder patterns with very different module sizes
+// so we only allow a difference under a given value in pixels
+#define MAX_MODULE_SIZE_DIFF 2.f
 
 static int compare_module_sizes(struct finder_pattern_list* *a, struct finder_pattern_list* *b) {
     if ((*a)->pattern.module_size < (*b)->pattern.module_size) {
