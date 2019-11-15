@@ -23,28 +23,48 @@
 
 
 int main(int argc, char* argv[]) {
-    if (argc == 1) {
-        printf("Usage: qrcode PNG\n");
+
+    const char* optstring = "v";
+    const struct option lopts[] = {
+        { "verbose", no_argument, NULL, 'v' },
+        { NULL, no_argument, NULL, 0 }
+    };
+
+    char verbose = 0;
+
+    int val, index = -1;
+    while (EOF != (val = getopt_long(argc, argv, optstring, lopts, &index))) {
+        switch (val) {
+            case 'v': verbose = 1; break;
+        }
+        index = -1;
+    }
+
+    if (argc == optind) {
+        printf("Usage: qrcode [-v|--verbose] PNG\n");
+        printf("\n");
+        printf(" -v|--verbose  turns on maximum logging\n");
         printf("\n");
         printf("Given a png image, tries to locate QR codes in it. On success,\n");
         printf("prints on the standard output an html page that shows the matches\n");
         printf("in the image as red rectangles. Hovering a rectangle with the mouse\n");
-        printf("will show the decoded message associated with the QR code.\n");
+        printf("will show the decoded message associated with the QR code. Also, the\n");
+        printf("finder patterns that were recognized are shown in blue circles.\n");
         printf("\n");
         return 1;
     }
 
-    set_log_level(INFO);
+    set_log_level(verbose ? GORY : INFO);
 
     struct qr_code_match_list* matches;
     struct finder_pattern_list* finder_patterns;
-    int res = find_qr_codes(argv[1], &matches, &finder_patterns);
+    int res = find_qr_codes(argv[optind], &matches, &finder_patterns);
     if (res == MEMORY_ERROR) {
         error("Memory allocation error\n");
         return 1;
     }
     if (res == CANNOT_LOAD_IMAGE) {
-        error("Cannot load image '%s'\n", argv[1]);
+        error("Cannot load image '%s'\n", argv[optind]);
         return 1;
     }
 
@@ -52,7 +72,7 @@ int main(int argc, char* argv[]) {
     printf("<head></head>\n");
     printf("<body>\n");
     printf("<div style='position:absolute; top:0px; left:0px'>\n");
-    printf("<img src='%s'>\n", argv[1]);
+    printf("<img src='%s'>\n", argv[optind]);
     printf("<div>\n");
 
     // Let's tag the finder patterns
