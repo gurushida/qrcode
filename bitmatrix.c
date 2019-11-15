@@ -49,3 +49,54 @@ void set_color(struct bit_matrix* bm, u_int8_t value, unsigned int x, unsigned i
     }
 }
 
+
+int create_from_string(const char* data[], struct bit_matrix* *bm) {
+    unsigned width = 0;
+    unsigned int height = 0;
+    while (data[height] != NULL) {
+        const char* line = data[height];
+        unsigned int len = 0;
+        while (line[len] != '\0') {
+            if (line[len] != '*' && line[len] != ' ') {
+                return DECODING_ERROR;
+            }
+            len++;
+        }
+        if (len == 0) {
+            return DECODING_ERROR;
+        }
+        if (width == 0) {
+            width = len;
+        } else if (width != len) {
+            return DECODING_ERROR;
+        }
+
+        height++;
+    }
+
+    *bm = create_bit_matrix(width, height);
+    if ((*bm) == NULL) {
+        return MEMORY_ERROR;
+    }
+
+    for (unsigned int y = 0 ; y < height ; y++) {
+        for (unsigned int x = 0 ; x < width ; x++) {
+            if (data[y][x] == '*') {
+                set_color(*bm, BLACK, x, y);
+            }
+        }
+    }
+
+    return SUCCESS;
+}
+
+
+void print_matrix(LogLevel level, struct bit_matrix* matrix) {
+    print_log(level, "%d x %d:\n", matrix->width, matrix->height);
+    for (unsigned int y = 0 ; y < matrix->height ; y++) {
+        for (unsigned int x = 0 ; x < matrix->width ; x++) {
+            print_log(level, "%c", is_black(matrix, x, y) ? '*' : ' ');
+        }
+        print_log(level, "\n");
+    }
+}

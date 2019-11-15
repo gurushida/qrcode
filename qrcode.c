@@ -17,20 +17,6 @@
 #include "versioninformation.h"
 
 
-/**
- * Debug prints the matrix.
- */
-static void print_matrix(struct bit_matrix* matrix) {
-    info("%d x %d:\n", matrix->width, matrix->height);
-    for (unsigned int y = 0 ; y < matrix->height ; y++) {
-        for (unsigned int x = 0 ; x < matrix->width ; x++) {
-            info("%c", is_black(matrix, x, y) ? '*' : ' ');
-        }
-        info("\n");
-    }
-}
-
-
 int find_qr_codes(const char* png, struct qr_code_match_list* *match_list,
                 struct finder_pattern_list* *potential_finder_patterns) {
     (*match_list) = NULL;
@@ -123,7 +109,7 @@ int find_qr_codes(const char* png, struct qr_code_match_list* *match_list,
             case SUCCESS: {
                 // We have a QR code matrix, let's try to decode it
                 info("Found a potential code ");
-                print_matrix(code->modules);
+                print_matrix(INFO, code->modules);
 
                 struct bytebuffer* message;
                 res = find_qr_code(code->modules, &message);
