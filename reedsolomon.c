@@ -258,7 +258,7 @@ int error_correction(struct block* b) {
     struct gf_polynomial* sigma;
     struct gf_polynomial* omega;
 
-    int res = calculate_sigma_omega(syndromes, 10, &sigma, &omega);
+    int res = calculate_sigma_omega(syndromes, b->n_error_correction_codewords, &sigma, &omega);
     if (res != SUCCESS) {
         gory("Cannot calculate sigma and omega polynomials\n");
         free_gf_polynomial(syndromes);
