@@ -37,7 +37,8 @@ int main(int argc, char* argv[]) {
     set_log_level(INFO);
 
     struct qr_code_match_list* matches;
-    int res = find_qr_codes(argv[1], &matches);
+    struct finder_pattern_list* finder_patterns;
+    int res = find_qr_codes(argv[1], &matches, &finder_patterns);
     if (res == MEMORY_ERROR) {
         error("Memory allocation error\n");
         return 1;
@@ -53,6 +54,24 @@ int main(int argc, char* argv[]) {
     printf("<div style='position:absolute; top:0px; left:0px'>\n");
     printf("<img src='%s'>\n", argv[1]);
     printf("<div>\n");
+
+    // Let's tag the finder patterns
+    struct finder_pattern_list* tmp_finder_patterns = finder_patterns;
+    while (tmp_finder_patterns != NULL) {
+        int center_x = (int)tmp_finder_patterns->pattern.x;
+        int center_y = (int)tmp_finder_patterns->pattern.y;
+        int radius = (int)(5 * tmp_finder_patterns->pattern.module_size);
+        printf("<div style='position:absolute; top:%dpx; left:%dpx'>\n", center_y - radius, center_x - radius);
+        printf("  <svg xmlns='http://www.w3.org/2000/svg' version='1.1' width='%dpx' height='%dpx'>\n", radius * 2, radius * 2);
+        printf("    <circle cx='%d' cy='%d' r='%d' style='stroke: blue; stroke-width: 3; fill: none'/>\n", radius, radius, radius - 2);
+        printf("  </svg>\n");
+        printf("</div>\n");
+
+        tmp_finder_patterns = tmp_finder_patterns->next;
+    }
+
+    free_finder_pattern_list(finder_patterns);
+
 
     struct qr_code_match_list* tmp = matches;
     while (tmp != NULL) {

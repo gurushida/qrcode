@@ -3,6 +3,7 @@
 
 #include "bitmatrix.h"
 #include "bytebuffer.h"
+#include "finderpattern.h"
 #include "logs.h"
 
 
@@ -37,12 +38,17 @@ struct qr_code_match_list {
  *
  * @param png The path to the .png file to analyze
  * @param list Where to store the results, if any
+ * @param potential_finder_patterns If not NULL, this is where will be
+ *                                  stored all the positions of the potential
+ *                                  finder patterns that were identified in the
+ *                                  image
  * @return SUCCESS if at least one QR code is found
  *         DECODING_ERROR if no QR code is found in the image
  *         MEMORY_ERROR in case of memory allocation error
  *         CANNOT_LOAD_IMAGE if the image cannot be loaded
  */
-int find_qr_codes(const char* png, struct qr_code_match_list* *list);
+int find_qr_codes(const char* png, struct qr_code_match_list* *list,
+                struct finder_pattern_list* *potential_finder_patterns);
 
 
 /**

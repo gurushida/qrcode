@@ -31,7 +31,8 @@ static void print_matrix(struct bit_matrix* matrix) {
 }
 
 
-int find_qr_codes(const char* png, struct qr_code_match_list* *match_list) {
+int find_qr_codes(const char* png, struct qr_code_match_list* *match_list,
+                struct finder_pattern_list* *potential_finder_patterns) {
     (*match_list) = NULL;
 
     // First, let's load the png image as an RGB image
@@ -94,7 +95,11 @@ int find_qr_codes(const char* png, struct qr_code_match_list* *match_list) {
     // this means figuring which finder pattern is A, B and C.
     struct finder_pattern_group_list* groups;
     res = find_groups(list, &groups);
-    free_finder_pattern_list(list);
+    if (potential_finder_patterns != NULL) {
+        (*potential_finder_patterns) = list;
+    } else {
+        free_finder_pattern_list(list);
+    }
     if (res != SUCCESS) {
         info("Could not find any center group\n");
         free_bit_matrix(bm);
