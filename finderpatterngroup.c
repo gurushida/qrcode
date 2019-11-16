@@ -186,8 +186,6 @@ static int check_points(struct finder_pattern* p1, struct finder_pattern* p2, st
 
 
 int find_groups(struct finder_pattern_list* list, struct finder_pattern_group_list* *groups) {
-    struct finder_pattern_list* tmp_finder_patterns = list;
-
     unsigned int n = get_list_size(list);
     if (n < 3) {
         // We need at list 3 finder patterns to have a match
