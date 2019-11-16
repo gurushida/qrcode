@@ -1,3 +1,4 @@
+all: libqrcode.so test qrcode
 
 SOURCES=bitmatrix.c rgbimage.c binarize.c finderpattern.c finderpatterngroup.c \
 	qrcodefinder.c formatinformation.c versioninformation.c codewordmask.c codewords.c \
@@ -13,12 +14,8 @@ qrcode_test: tests.c libqrcode.so
 libqrcode.so: $(SOURCES)
 	$(CC) -fPIC -lpng $(SOURCES) -shared -o libqrcode.so -Wall -Wextra -pedantic -std=c99
 
-install: qrcode
-	cp qrcode /usr/local/bin/
-
 test: qrcode_test
 	./qrcode_test
 
 clean:
-	rm qrcode qrcode_test libqrcode.so
-
+	rm -f qrcode qrcode_test libqrcode.so
