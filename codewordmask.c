@@ -61,7 +61,7 @@ static u_int8_t alignment_patterns[40][8] = {
 int get_codeword_mask(unsigned int size, struct bit_matrix* *mask) {
     if (size < 21
         || size > 177
-        || (size % 4) != 1) {
+        || (size & 3) != 1) {
             return DECODING_ERROR;
     }
 
