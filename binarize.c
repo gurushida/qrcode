@@ -23,7 +23,7 @@ static u_int8_t* calculate_luminances(struct rgb_image* img) {
         u_int8_t blue = img->buffer[offset + 2];
         // The human eye perceives green approximately twice as much
         // as red and blue when it comes to brightness
-        luminances[j++] = (u_int8_t) ((red + green * 2 + blue) / 4);
+        luminances[j++] = (u_int8_t) ((red + green * 2 + blue) >> 2);
     }
 
     return luminances;
